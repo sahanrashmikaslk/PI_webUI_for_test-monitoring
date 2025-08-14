@@ -66,7 +66,7 @@ EOF
 
 # Add pi user to audio group
 echo "👤 Adding pi user to audio group..."
-sudo usermod -a -G audio pi
+sudo usermod -a -G audio sahan
 
 echo ""
 echo "✅ Cry Detection Setup Complete!"
