@@ -3,8 +3,20 @@
 # Complete management script for all monitoring services including direct camera streams
 
 SERVICES=("pi-health-server" "pi-cry-detector" "pi-camera-server" "pi-camera1-stream" "pi-camera2-stream")
-SERVICE_PORTS=("9000" "8888" "8889" "8080" "8081")
-SERVICE_NAMES=("Health Server" "Cry Detector" "Camera API" "Camera 1 Stream" "Camera 2 Stream")
+SERVICE_PORTS=("9000" "8888" "8889" "8080"    echo "Commands:"
+    echo "  start              Start all services"
+    echo "  stop               Stop all services" 
+    echo "  restart            Restart all services"
+    echo "  restart-cameras    Restart only camera services"
+    echo "  recover            Complete service recovery (recommended)"
+    echo "  status             Show detailed status"
+    echo "  cameras            Check camera streams only"
+    echo "  enable             Enable autostart on boot"
+    echo "  disable            Disable autostart on boot"
+    echo "  logs [service]     Show logs for service"
+    echo "  fix-permissions    Fix camera permissions"
+    echo "  install            Install dependencies"
+    echo "  help               Show this help"ERVICE_NAMES=("Health Server" "Cry Detector" "Camera API" "Camera 1 Stream" "Camera 2 Stream")
 
 show_banner() {
     echo "🔧 Pi Monitoring System - Service Manager"
@@ -105,24 +117,77 @@ restart_services() {
     echo "🔄 Restarting all Pi monitoring services..."
     echo ""
     
+    # Stop all services first
     for i in "${!SERVICES[@]}"; do
         local service="${SERVICES[$i]}"
         local name="${SERVICE_NAMES[$i]}"
         
-        echo "🔄 Restarting $name..."
-        sudo systemctl restart $service
+        echo "⏹️ Stopping $name..."
+        sudo systemctl stop $service
+    done
+    
+    echo ""
+    echo "⏳ Waiting for services to stop..."
+    sleep 2
+    
+    # Start all services
+    for i in "${!SERVICES[@]}"; do
+        local service="${SERVICES[$i]}"
+        local name="${SERVICE_NAMES[$i]}"
+        
+        echo "🚀 Starting $name..."
+        sudo systemctl start $service
         
         if systemctl is-active $service >/dev/null 2>&1; then
-            echo "✅ $name restarted successfully"
+            echo "✅ $name started successfully"
         else
-            echo "❌ Failed to restart $name"
+            echo "❌ Failed to start $name"
         fi
         echo ""
     done
     
     echo "⏳ Waiting for services to initialize..."
-    sleep 3
+    sleep 5
     check_status
+}
+
+recover_all_services() {
+    show_banner
+    echo "🛠️ Running complete service recovery..."
+    echo ""
+    
+    if [ -f "./recover_all_services.sh" ]; then
+        chmod +x ./recover_all_services.sh
+        ./recover_all_services.sh
+    else
+        echo "❌ recover_all_services.sh not found"
+        echo "   Please ensure all scripts are in the current directory"
+        echo ""
+        echo "🔄 Performing basic recovery instead..."
+        
+        # Basic recovery: reload systemd and restart all services
+        sudo systemctl daemon-reload
+        
+        for i in "${!SERVICES[@]}"; do
+            local service="${SERVICES[$i]}"
+            local name="${SERVICE_NAMES[$i]}"
+            
+            echo "🔄 Recovering $name..."
+            sudo systemctl enable $service
+            sudo systemctl restart $service
+            
+            if systemctl is-active $service >/dev/null 2>&1; then
+                echo "✅ $name recovered"
+            else
+                echo "❌ Failed to recover $name"
+            fi
+        done
+        
+        echo ""
+        echo "⏳ Waiting for services to initialize..."
+        sleep 5
+        check_status
+    fi
 }
 
 check_status() {
@@ -270,6 +335,9 @@ case "$1" in
         ;;
     restart)
         restart_services
+        ;;
+    recover)
+        recover_all_services
         ;;
     status)
         check_status
