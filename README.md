@@ -1,10 +1,10 @@
-# 🔬 Raspberry Pi Monitoring Test Dashboard
+#  Raspberry Pi Monitoring Test Dashboard
 
 A comprehensive real-time monitoring system for Raspberry Pi with live camera streaming, baby cry detection, system health monitoring, and SSH terminal access.
 
 ![Dashboard Preview](https://img.shields.io/badge/Status-Production%20Ready-brightgreen) ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi-red) ![License](https://img.shields.io/badge/License-MIT-blue)
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Features](#-features)
 - [System Requirements](#-system-requirements)
@@ -19,9 +19,9 @@ A comprehensive real-time monitoring system for Raspberry Pi with live camera st
 - [Configuration](#-configuration)
 - [Contributing](#-contributing)
 
-## ✨ Features
+## Features
 
-### 🎯 Core Functionality
+### Core Functionality
 
 - **Real-time System Monitoring** - CPU, RAM, temperature, and power status
 - **Dual Camera Streaming** - Live infant monitoring and LCD reading
@@ -30,7 +30,7 @@ A comprehensive real-time monitoring system for Raspberry Pi with live camera st
 - **Automatic Service Management** - All services start on Pi boot
 - **Responsive Web Interface** - Works on desktop, tablet, and mobile
 
-### 🔧 Technical Features
+### Technical Features
 
 - **Auto-start Configuration** - Complete systemd service setup
 - **Persistent Monitoring** - Services restart automatically on failure
@@ -39,7 +39,7 @@ A comprehensive real-time monitoring system for Raspberry Pi with live camera st
 - **Error Handling** - Graceful degradation when services are unavailable
 - **Configurable IP** - Easy Pi IP address configuration from dashboard
 
-## 🖥️ System Requirements
+## System Requirements
 
 ### Hardware
 
@@ -57,7 +57,7 @@ A comprehensive real-time monitoring system for Raspberry Pi with live camera st
 - **ttyd** (for SSH terminal)
 - **ALSA/PulseAudio** (for audio processing)
 
-## 🚀 Quick Setup
+## Quick Setup
 
 ### Step 1: Clone Repository
 
