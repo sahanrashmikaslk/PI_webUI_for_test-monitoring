@@ -20,15 +20,15 @@ class CameraManager:
         self.camera_configs = {
             'camera1': {
                 'name': 'Live Stream (Infant)',
-                'device': '/dev/video0',
+                'device': '/dev/video2',  # V380 camera for infant monitoring
                 'port': 8080,
                 'resolution': '640x480',
                 'fps': 30,
                 'process': None
             },
             'camera2': {
-                'name': 'LCD Reader',
-                'device': '/dev/video2', 
+                'name': 'LCD Display Stream',
+                'device': '/dev/video0',  # USB 2.0 camera for LCD display
                 'port': 8081,
                 'resolution': '640x480',
                 'fps': 30,

@@ -1014,6 +1014,170 @@
             </div>
           </div>
 
+          <!-- LCD Display Readings -->
+          <div class="card" style="flex: 0 0 auto">
+            <div class="card-header">
+              <h2 class="card-title" style="font-size: 1rem">
+                <div class="card-icon">📊</div>
+                Incubator Parameters
+              </h2>
+              <div style="display: flex; align-items: center; gap: 0.3rem">
+                <button
+                  class="btn btn-success"
+                  onclick="toggleLCDMonitoring()"
+                  id="lcdBtn"
+                  style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                >
+                  ▶️ Start
+                </button>
+                <button
+                  class="btn btn-secondary"
+                  onclick="captureLCDReading()"
+                  id="lcdCaptureBtn"
+                  style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                  title="Capture new reading immediately"
+                >
+                  📸
+                </button>
+              </div>
+            </div>
+
+            <div style="padding: 1rem">
+              <!-- LCD Status Indicator -->
+              <div
+                id="lcdStatus"
+                style="
+                  padding: 0.5rem;
+                  border-radius: 8px;
+                  background: var(--bg-secondary);
+                  margin-bottom: 0.8rem;
+                  font-size: 0.8rem;
+                  text-align: center;
+                "
+              >
+                ⚪ Not monitoring
+              </div>
+
+              <!-- LCD Parameters Grid -->
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 0.8rem;
+                "
+              >
+                <!-- Heart Rate -->
+                <div class="metric-card" style="padding: 0.8rem">
+                  <div
+                    class="metric-value"
+                    id="lcdHeartRate"
+                    style="color: #ff6b6b; font-size: 1.5rem"
+                  >
+                    --
+                  </div>
+                  <div class="metric-label" style="font-size: 0.75rem">
+                    ❤️ Heart Rate
+                  </div>
+                  <div
+                    id="lcdHeartRateConf"
+                    style="
+                      font-size: 0.65rem;
+                      color: var(--text-muted);
+                      margin-top: 0.2rem;
+                    "
+                  >
+                    Confidence: --
+                  </div>
+                </div>
+
+                <!-- SpO2 -->
+                <div class="metric-card" style="padding: 0.8rem">
+                  <div
+                    class="metric-value"
+                    id="lcdSpO2"
+                    style="color: #4ecdc4; font-size: 1.5rem"
+                  >
+                    --
+                  </div>
+                  <div class="metric-label" style="font-size: 0.75rem">
+                    🫁 SpO2
+                  </div>
+                  <div
+                    id="lcdSpO2Conf"
+                    style="
+                      font-size: 0.65rem;
+                      color: var(--text-muted);
+                      margin-top: 0.2rem;
+                    "
+                  >
+                    Confidence: --
+                  </div>
+                </div>
+
+                <!-- Skin Temperature -->
+                <div class="metric-card" style="padding: 0.8rem">
+                  <div
+                    class="metric-value"
+                    id="lcdTemp"
+                    style="color: #f9ca24; font-size: 1.5rem"
+                  >
+                    --
+                  </div>
+                  <div class="metric-label" style="font-size: 0.75rem">
+                    🌡️ Skin Temp
+                  </div>
+                  <div
+                    id="lcdTempConf"
+                    style="
+                      font-size: 0.65rem;
+                      color: var(--text-muted);
+                      margin-top: 0.2rem;
+                    "
+                  >
+                    Confidence: --
+                  </div>
+                </div>
+
+                <!-- Humidity -->
+                <div class="metric-card" style="padding: 0.8rem">
+                  <div
+                    class="metric-value"
+                    id="lcdHumidity"
+                    style="color: #6c5ce7; font-size: 1.5rem"
+                  >
+                    --
+                  </div>
+                  <div class="metric-label" style="font-size: 0.75rem">
+                    💧 Humidity
+                  </div>
+                  <div
+                    id="lcdHumidityConf"
+                    style="
+                      font-size: 0.65rem;
+                      color: var(--text-muted);
+                      margin-top: 0.2rem;
+                    "
+                  >
+                    Confidence: --
+                  </div>
+                </div>
+              </div>
+
+              <!-- Last Update Time -->
+              <div
+                id="lcdLastUpdate"
+                style="
+                  margin-top: 0.8rem;
+                  font-size: 0.7rem;
+                  color: var(--text-muted);
+                  text-align: center;
+                "
+              >
+                Last update: Never
+              </div>
+            </div>
+          </div>
+
           <!-- SSH Terminal -->
           <div class="card" style="flex: 1">
             <div class="card-header">
@@ -1169,6 +1333,7 @@
       let PI_IP = "100.99.151.101"; // Pi IP - can be changed via UI
       const HEALTH_PORT = 9000;
       const CRY_PORT = 8888;
+      const LCD_PORT = 9001;
       const TERMINAL_PORT = 7681;
 
       // === PI IP MANAGEMENT ===
@@ -1346,6 +1511,12 @@
           startAllCams();
         }, 1000); // Small delay to ensure page is fully loaded
 
+        // Auto-start LCD monitoring on page load
+        console.log("📊 Auto-starting LCD monitoring...");
+        setTimeout(() => {
+          startLCDMonitoring();
+        }, 1500); // Start after cameras are loaded
+
         // Handle page visibility changes for persistence
         document.addEventListener("visibilitychange", function () {
           if (!document.hidden && !isHealthMonitoring) {
@@ -1353,6 +1524,16 @@
               "🔄 Page became visible - restarting health monitoring"
             );
             startHealthMonitoring();
+          }
+
+          // Check and restart LCD monitoring if needed
+          if (!document.hidden && !isLCDMonitoring) {
+            console.log(
+              "🔄 Page became visible - restarting LCD monitoring"
+            );
+            setTimeout(() => {
+              startLCDMonitoring();
+            }, 800);
           }
 
           // Check and restart cameras if needed
@@ -1382,6 +1563,16 @@
             startHealthMonitoring();
           }
 
+          // Ensure LCD monitoring is active
+          if (!isLCDMonitoring) {
+            console.log(
+              "🔄 Window focused - ensuring LCD monitoring is active"
+            );
+            setTimeout(() => {
+              startLCDMonitoring();
+            }, 800);
+          }
+
           // Ensure cameras are running
           setTimeout(() => {
             checkAndRestartCameras();
@@ -1401,6 +1592,14 @@
           if (!isHealthMonitoring) {
             console.log("🔄 Periodic check - restarting health monitoring");
             startHealthMonitoring();
+          }
+        }, 30000);
+
+        // Set up periodic LCD monitoring check (every 30 seconds)
+        setInterval(function () {
+          if (!isLCDMonitoring) {
+            console.log("🔄 Periodic check - restarting LCD monitoring");
+            startLCDMonitoring();
           }
         }, 30000);
 
@@ -1614,7 +1813,7 @@
 
       function openCam(camNum) {
         const port = document.getElementById(`port${camNum}`).value;
-        const url = `http://${PI_IP}:${port}/?action=stream`;;
+        const url = `http://${PI_IP}:${port}/?action=stream`;
         window.open(url, `_camera${camNum}`);
         console.log(`🔗 Opened Camera ${camNum} in new tab: ${url}`);
       }
@@ -2011,6 +2210,321 @@
         audioPlayer.pause();
         audioPlayer.src = "";
         console.log("🔇 Audio stream stopped");
+      }
+
+      // === LCD READING FUNCTIONS ===
+
+      let isLCDMonitoring = false;
+      let lcdInterval;
+      
+      // Store previous readings to use when no new data is detected
+      let previousReadings = {
+        heart_rate_value: null,
+        spo2_value: null,
+        skin_temp_value: null,
+        humidity_value: null
+      };
+
+      function toggleLCDMonitoring() {
+        if (isLCDMonitoring) {
+          stopLCDMonitoring();
+        } else {
+          startLCDMonitoring();
+        }
+      }
+
+      function startLCDMonitoring() {
+        if (isLCDMonitoring) return;
+
+        isLCDMonitoring = true;
+        document.getElementById("lcdBtn").textContent = "⏹️ Stop";
+        document.getElementById("lcdBtn").classList.remove("btn-success");
+        document.getElementById("lcdBtn").classList.add("btn-danger");
+
+        console.log("📊 Starting LCD reading monitoring...");
+
+        // Fetch immediately
+        fetchLCDReadings();
+
+        // Then poll every 10 seconds (better for processing time)
+        lcdInterval = setInterval(fetchLCDReadings, 10000);
+
+        updateLCDStatus("monitoring", "🔄 Monitoring active");
+      }
+
+      function stopLCDMonitoring() {
+        if (!isLCDMonitoring) return;
+
+        isLCDMonitoring = false;
+        clearInterval(lcdInterval);
+
+        document.getElementById("lcdBtn").textContent = "▶️ Start";
+        document.getElementById("lcdBtn").classList.remove("btn-danger");
+        document.getElementById("lcdBtn").classList.add("btn-success");
+
+        console.log("⏹️ LCD reading monitoring stopped");
+
+        updateLCDStatus("stopped", "⚪ Not monitoring");
+      }
+
+      async function fetchLCDReadings() {
+        try {
+          const response = await fetch(`http://${PI_IP}:${LCD_PORT}/readings`, {
+            method: "GET",
+            mode: "cors",
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          updateLCDDisplay(data);
+        } catch (error) {
+          console.error("❌ Error fetching LCD readings:", error);
+          updateLCDStatus("error", "❌ Connection error");
+
+          // Reset displays on error
+          document.getElementById("lcdHeartRate").textContent = "--";
+          document.getElementById("lcdSpO2").textContent = "--";
+          document.getElementById("lcdTemp").textContent = "--";
+          document.getElementById("lcdHumidity").textContent = "--";
+        }
+      }
+
+      async function captureLCDReading() {
+        // Disable button temporarily
+        const btn = document.getElementById("lcdCaptureBtn");
+        btn.disabled = true;
+        btn.textContent = "⏳";
+
+        updateLCDStatus("capturing", "📸 Capturing...");
+
+        try {
+          const response = await fetch(`http://${PI_IP}:${LCD_PORT}/capture`, {
+            method: "GET",
+            mode: "cors",
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          updateLCDDisplay(data);
+          updateLCDStatus(
+            isLCDMonitoring ? "monitoring" : "success",
+            isLCDMonitoring ? "🔄 Monitoring active" : "✅ Capture complete"
+          );
+        } catch (error) {
+          console.error("❌ Error capturing LCD reading:", error);
+          updateLCDStatus("error", "❌ Capture failed");
+        } finally {
+          // Re-enable button
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = "📸";
+          }, 1000);
+        }
+      }
+
+      function updateLCDDisplay(data) {
+        if (data.status === "success" && data.readings) {
+          const readings = data.readings;
+          const timestamp = new Date(data.timestamp * 1000);
+
+          // Heart Rate - use new data or keep previous
+          if (readings.heart_rate_value) {
+            const hr = readings.heart_rate_value;
+            hr.timestamp = timestamp; // Add timestamp
+            previousReadings.heart_rate_value = hr; // Store for later use
+            
+            document.getElementById(
+              "lcdHeartRate"
+            ).textContent = `${hr.value} ${hr.unit}`;
+            document.getElementById(
+              "lcdHeartRateConf"
+            ).textContent = `Confidence: ${(hr.ocr_confidence * 100).toFixed(
+              0
+            )}% (${timestamp.toLocaleTimeString()})`;
+
+            // Color code based on range (60-220 normal)
+            const hrValue = parseInt(hr.value);
+            const hrColor =
+              hrValue < 100 || hrValue > 180 ? "#ff6b6b" : "#51cf66";
+            document.getElementById("lcdHeartRate").style.color = hrColor;
+          } else if (previousReadings.heart_rate_value) {
+            // Use previous value if nothing detected
+            const hr = previousReadings.heart_rate_value;
+            document.getElementById(
+              "lcdHeartRate"
+            ).textContent = `${hr.value} ${hr.unit}`;
+            document.getElementById(
+              "lcdHeartRateConf"
+            ).textContent = `Confidence: ${(hr.ocr_confidence * 100).toFixed(
+              0
+            )}% (${hr.timestamp.toLocaleTimeString()})`;
+            
+            const hrValue = parseInt(hr.value);
+            const hrColor =
+              hrValue < 100 || hrValue > 180 ? "#ff6b6b" : "#51cf66";
+            document.getElementById("lcdHeartRate").style.color = hrColor;
+          } else {
+            document.getElementById("lcdHeartRate").textContent = "--";
+            document.getElementById("lcdHeartRateConf").textContent =
+              "Not detected";
+          }
+
+          // SpO2 - use new data or keep previous
+          if (readings.spo2_value) {
+            const spo2 = readings.spo2_value;
+            spo2.timestamp = timestamp;
+            previousReadings.spo2_value = spo2;
+            
+            document.getElementById(
+              "lcdSpO2"
+            ).textContent = `${spo2.value}${spo2.unit}`;
+            document.getElementById(
+              "lcdSpO2Conf"
+            ).textContent = `Confidence: ${(spo2.ocr_confidence * 100).toFixed(
+              0
+            )}% (${timestamp.toLocaleTimeString()})`;
+
+            // Color code based on range (95-100 normal)
+            const spo2Value = parseInt(spo2.value);
+            const spo2Color = spo2Value < 95 ? "#ff6b6b" : "#51cf66";
+            document.getElementById("lcdSpO2").style.color = spo2Color;
+          } else if (previousReadings.spo2_value) {
+            // Use previous value
+            const spo2 = previousReadings.spo2_value;
+            document.getElementById(
+              "lcdSpO2"
+            ).textContent = `${spo2.value}${spo2.unit}`;
+            document.getElementById(
+              "lcdSpO2Conf"
+            ).textContent = `Confidence: ${(spo2.ocr_confidence * 100).toFixed(
+              0
+            )}% (${spo2.timestamp.toLocaleTimeString()})`;
+            
+            const spo2Value = parseInt(spo2.value);
+            const spo2Color = spo2Value < 95 ? "#ff6b6b" : "#51cf66";
+            document.getElementById("lcdSpO2").style.color = spo2Color;
+          } else {
+            document.getElementById("lcdSpO2").textContent = "--";
+            document.getElementById("lcdSpO2Conf").textContent = "Not detected";
+          }
+
+          // Skin Temperature - use new data or keep previous
+          if (readings.skin_temp_value) {
+            const temp = readings.skin_temp_value;
+            temp.timestamp = timestamp;
+            previousReadings.skin_temp_value = temp;
+            
+            document.getElementById(
+              "lcdTemp"
+            ).textContent = `${temp.value}${temp.unit}`;
+            document.getElementById(
+              "lcdTempConf"
+            ).textContent = `Confidence: ${(temp.ocr_confidence * 100).toFixed(
+              0
+            )}% (${timestamp.toLocaleTimeString()})`;
+
+            // Color code based on range (36-37.5 normal)
+            const tempValue = parseFloat(temp.value);
+            const tempColor =
+              tempValue < 36.0 || tempValue > 37.5 ? "#ff6b6b" : "#51cf66";
+            document.getElementById("lcdTemp").style.color = tempColor;
+          } else if (previousReadings.skin_temp_value) {
+            // Use previous value
+            const temp = previousReadings.skin_temp_value;
+            document.getElementById(
+              "lcdTemp"
+            ).textContent = `${temp.value}${temp.unit}`;
+            document.getElementById(
+              "lcdTempConf"
+            ).textContent = `Confidence: ${(temp.ocr_confidence * 100).toFixed(
+              0
+            )}% (${temp.timestamp.toLocaleTimeString()})`;
+            
+            const tempValue = parseFloat(temp.value);
+            const tempColor =
+              tempValue < 36.0 || tempValue > 37.5 ? "#ff6b6b" : "#51cf66";
+            document.getElementById("lcdTemp").style.color = tempColor;
+          } else {
+            document.getElementById("lcdTemp").textContent = "--";
+            document.getElementById("lcdTempConf").textContent = "Not detected";
+          }
+
+          // Humidity - use new data or keep previous
+          if (readings.humidity_value) {
+            const humidity = readings.humidity_value;
+            humidity.timestamp = timestamp;
+            previousReadings.humidity_value = humidity;
+            
+            document.getElementById(
+              "lcdHumidity"
+            ).textContent = `${humidity.value}${humidity.unit}`;
+            document.getElementById(
+              "lcdHumidityConf"
+            ).textContent = `Confidence: ${(
+              humidity.ocr_confidence * 100
+            ).toFixed(0)}% (${timestamp.toLocaleTimeString()})`;
+          } else if (previousReadings.humidity_value) {
+            // Use previous value
+            const humidity = previousReadings.humidity_value;
+            document.getElementById(
+              "lcdHumidity"
+            ).textContent = `${humidity.value}${humidity.unit}`;
+            document.getElementById(
+              "lcdHumidityConf"
+            ).textContent = `Confidence: ${(
+              humidity.ocr_confidence * 100
+            ).toFixed(0)}% (${humidity.timestamp.toLocaleTimeString()})`;
+          } else {
+            document.getElementById("lcdHumidity").textContent = "--";
+            document.getElementById("lcdHumidityConf").textContent =
+              "Not detected";
+          }
+
+          // Update last update time
+          const now = new Date();
+          document.getElementById(
+            "lcdLastUpdate"
+          ).textContent = `Last update: ${now.toLocaleTimeString()}`;
+
+          // Update status
+          updateLCDStatus(
+            "success",
+            `✅ ${data.detections_count} parameter${
+              data.detections_count !== 1 ? "s" : ""
+            } detected`
+          );
+        } else if (data.status === "no_detection") {
+          updateLCDStatus("warning", "⚠️ No display detected");
+        } else if (data.status === "error") {
+          updateLCDStatus("error", `❌ ${data.message || "Error"}`);
+        } else if (data.status === "no_data") {
+          updateLCDStatus("info", "ℹ️ Waiting for data...");
+        }
+      }
+
+      function updateLCDStatus(type, message) {
+        const statusDiv = document.getElementById("lcdStatus");
+        statusDiv.textContent = message;
+
+        // Color coding
+        const colors = {
+          monitoring: "#4ecdc4",
+          capturing: "#f9ca24",
+          success: "#51cf66",
+          warning: "#ff6b6b",
+          error: "#ee5a6f",
+          stopped: "#6c757d",
+          info: "#74b9ff",
+        };
+
+        statusDiv.style.background = colors[type] || colors.info;
+        statusDiv.style.color = type === "stopped" ? "#adb5bd" : "#ffffff";
       }
 
       // === TERMINAL FUNCTIONS ===
