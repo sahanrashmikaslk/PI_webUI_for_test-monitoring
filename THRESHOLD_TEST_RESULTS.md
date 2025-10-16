@@ -8,10 +8,11 @@
 ## 📊 Test Results
 
 ### Confidence Threshold Test
-| Threshold | Detections | Result |
-|-----------|------------|--------|
-| **0.25** (Original) | 0 | ❌ No detections |
-| **0.1** (Lowered) | 0 | ❌ No detections |
+
+| Threshold           | Detections | Result           |
+| ------------------- | ---------- | ---------------- |
+| **0.25** (Original) | 0          | ❌ No detections |
+| **0.1** (Lowered)   | 0          | ❌ No detections |
 
 **Conclusion**: The issue is **NOT** the confidence threshold. The YOLO model is not detecting ANY objects in the captured frames, regardless of threshold.
 
@@ -20,13 +21,15 @@
 ## 🔍 Current System State
 
 ### Service Status
+
 ✅ **lcd-reading.service**: Running  
 ✅ **Camera capture**: Working (480x640 frames via HTTP stream)  
 ✅ **ONNX model**: Loaded successfully  
 ✅ **EasyOCR**: Initialized  
-✅ **API endpoint**: Responding on port 9001  
+✅ **API endpoint**: Responding on port 9001
 
 ### Debug Information
+
 ```json
 {
   "frame_shape": [480, 640, 3],
@@ -37,6 +40,7 @@
 ```
 
 ### Debug Images Saved
+
 - Latest: `/home/sahan/monitoring/lcd_capture_20251014_140150.jpg`
 - Downloaded locally: `debug_lcd_capture.jpg`
 
@@ -51,12 +55,14 @@ The problem is **NOT** related to the fixed bugs (camera, OCR, model format). Th
 Possible reasons:
 
 #### 1. **Camera Position/Angle**
+
 - LCD display may not be visible in the camera frame
 - Camera may be pointed at wrong angle
 - LCD may be too far or too close
 - Focus issues
 
 #### 2. **Model Training Mismatch**
+
 - The YOLOv8n model was trained on specific LCD display images
 - Current camera setup may have different:
   - **Distance** from LCD
@@ -66,6 +72,7 @@ Possible reasons:
   - **LCD display type** (different model?)
 
 #### 3. **Image Quality**
+
 - Resolution: 640x480 (relatively low)
 - Compression from mjpg_streamer
 - Possible blur or focus issues
@@ -77,6 +84,7 @@ Possible reasons:
 ### **Option 1: Check Camera View** ⭐ **START HERE**
 
 1. **View the captured image**:
+
    ```powershell
    # Image already downloaded as debug_lcd_capture.jpg
    # Open it and check:
@@ -87,6 +95,7 @@ Possible reasons:
    ```
 
 2. **If LCD is not visible or poorly positioned**:
+
    - Adjust camera position
    - Point camera directly at LCD display
    - Ensure adequate distance (30-50cm typically works best)
@@ -100,6 +109,7 @@ Possible reasons:
 ### **Option 2: Test with Different Images**
 
 Download multiple debug images to see patterns:
+
 ```powershell
 # List all recent captures
 ssh sahan@100.99.151.101 "ls -lt /home/sahan/monitoring/lcd_capture_*.jpg | head -5"
@@ -113,6 +123,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/lcd_capture_*.jpg ./debug_images
 The model might not be suitable for this setup. Check:
 
 1. **Verify model was trained for incubator LCD displays**:
+
    ```bash
    # Check model info
    ssh sahan@100.99.151.101 "ls -lh /home/sahan/monitoring/models/"
@@ -150,9 +161,11 @@ for result in results:
 ### **Option 5: Manual Test via Web**
 
 View the camera stream in your browser:
+
 ```
 http://100.99.151.101:8081/?action=stream
 ```
+
 Verify what the camera sees in real-time.
 
 ---
@@ -160,12 +173,15 @@ Verify what the camera sees in real-time.
 ## 🎯 Next Steps Priority
 
 ### **High Priority** (Do First)
+
 1. ✅ **Open `debug_lcd_capture.jpg`** and visually inspect
+
    - Is LCD display visible?
    - Is it readable?
    - Is image quality acceptable?
 
 2. **If LCD NOT visible**: Reposition camera
+
    - Point directly at LCD
    - Adjust distance
    - Test again
@@ -175,11 +191,13 @@ Verify what the camera sees in real-time.
    - Need to retrain or fine-tune model
 
 ### **Medium Priority**
+
 4. **Test different confidence thresholds**: Try 0.05, 0.01 (very low)
 5. **Check model classes**: Verify what the model was trained to detect
 6. **Review training data**: Compare with current camera view
 
 ### **Low Priority** (If Nothing Else Works)
+
 7. **Retrain YOLO model** with images from current setup
 8. **Try different detection approach** (template matching, etc.)
 9. **Use pre-trained LCD detection model** from other sources
@@ -189,6 +207,7 @@ Verify what the camera sees in real-time.
 ## 📸 Camera Stream Check
 
 View live camera feed:
+
 ```
 Browser: http://100.99.151.101:8081/?action=stream
 Snapshot: http://100.99.151.101:8081/?action=snapshot
@@ -201,6 +220,7 @@ This will show exactly what the LCD reading server sees.
 ## 🤖 Model Information
 
 ### Current Model
+
 - **Path**: `/home/sahan/monitoring/models/incubator_yolov8n.onnx`
 - **Size**: 12MB
 - **Format**: ONNX (optimized)
@@ -208,6 +228,7 @@ This will show exactly what the LCD reading server sees.
 - **Classes**: Unknown (need to verify)
 
 ### Alternative Models Available
+
 ```bash
 /home/sahan/monitoring/models/
 ├── incubator_yolov8n.onnx (12MB) ← Currently using
@@ -220,22 +241,26 @@ This will show exactly what the LCD reading server sees.
 ## 💡 Quick Diagnostic Commands
 
 ### View latest capture
+
 ```bash
 ssh sahan@100.99.151.101 "ls -lt /home/sahan/monitoring/lcd_capture_*.jpg | head -1"
 ```
 
 ### Download latest
+
 ```bash
 scp sahan@100.99.151.101:/home/sahan/monitoring/lcd_capture_$(date +%Y%m%d)_*.jpg ./
 ```
 
 ### Test API
+
 ```bash
 curl http://100.99.151.101:9001/debug
 curl http://100.99.151.101:9001/readings
 ```
 
 ### Monitor live
+
 ```bash
 ssh sahan@100.99.151.101 "sudo journalctl -u lcd-reading.service -f"
 ```
@@ -244,14 +269,14 @@ ssh sahan@100.99.151.101 "sudo journalctl -u lcd-reading.service -f"
 
 ## 📋 Summary
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| **Service** | ✅ Running | No issues |
-| **Camera Capture** | ✅ Working | 640x480 frames via HTTP |
-| **ONNX Model** | ✅ Loaded | Inference working |
-| **EasyOCR** | ✅ Ready | Initialized successfully |
-| **Detection** | ❌ **FAILING** | **0 detections at 0.1 threshold** |
-| **Root Cause** | ⚠️ **Unknown** | Need to inspect captured image |
+| Component          | Status         | Notes                             |
+| ------------------ | -------------- | --------------------------------- |
+| **Service**        | ✅ Running     | No issues                         |
+| **Camera Capture** | ✅ Working     | 640x480 frames via HTTP           |
+| **ONNX Model**     | ✅ Loaded      | Inference working                 |
+| **EasyOCR**        | ✅ Ready       | Initialized successfully          |
+| **Detection**      | ❌ **FAILING** | **0 detections at 0.1 threshold** |
+| **Root Cause**     | ⚠️ **Unknown** | Need to inspect captured image    |
 
 ---
 

@@ -1528,9 +1528,7 @@
 
           // Check and restart LCD monitoring if needed
           if (!document.hidden && !isLCDMonitoring) {
-            console.log(
-              "🔄 Page became visible - restarting LCD monitoring"
-            );
+            console.log("🔄 Page became visible - restarting LCD monitoring");
             setTimeout(() => {
               startLCDMonitoring();
             }, 800);
@@ -2216,13 +2214,13 @@
 
       let isLCDMonitoring = false;
       let lcdInterval;
-      
+
       // Store previous readings to use when no new data is detected
       let previousReadings = {
         heart_rate_value: null,
         spo2_value: null,
         skin_temp_value: null,
-        humidity_value: null
+        humidity_value: null,
       };
 
       function toggleLCDMonitoring() {
@@ -2338,7 +2336,7 @@
             const hr = readings.heart_rate_value;
             hr.timestamp = timestamp; // Add timestamp
             previousReadings.heart_rate_value = hr; // Store for later use
-            
+
             document.getElementById(
               "lcdHeartRate"
             ).textContent = `${hr.value} ${hr.unit}`;
@@ -2364,7 +2362,7 @@
             ).textContent = `Confidence: ${(hr.ocr_confidence * 100).toFixed(
               0
             )}% (${hr.timestamp.toLocaleTimeString()})`;
-            
+
             const hrValue = parseInt(hr.value);
             const hrColor =
               hrValue < 100 || hrValue > 180 ? "#ff6b6b" : "#51cf66";
@@ -2380,7 +2378,7 @@
             const spo2 = readings.spo2_value;
             spo2.timestamp = timestamp;
             previousReadings.spo2_value = spo2;
-            
+
             document.getElementById(
               "lcdSpO2"
             ).textContent = `${spo2.value}${spo2.unit}`;
@@ -2405,7 +2403,7 @@
             ).textContent = `Confidence: ${(spo2.ocr_confidence * 100).toFixed(
               0
             )}% (${spo2.timestamp.toLocaleTimeString()})`;
-            
+
             const spo2Value = parseInt(spo2.value);
             const spo2Color = spo2Value < 95 ? "#ff6b6b" : "#51cf66";
             document.getElementById("lcdSpO2").style.color = spo2Color;
@@ -2419,7 +2417,7 @@
             const temp = readings.skin_temp_value;
             temp.timestamp = timestamp;
             previousReadings.skin_temp_value = temp;
-            
+
             document.getElementById(
               "lcdTemp"
             ).textContent = `${temp.value}${temp.unit}`;
@@ -2445,7 +2443,7 @@
             ).textContent = `Confidence: ${(temp.ocr_confidence * 100).toFixed(
               0
             )}% (${temp.timestamp.toLocaleTimeString()})`;
-            
+
             const tempValue = parseFloat(temp.value);
             const tempColor =
               tempValue < 36.0 || tempValue > 37.5 ? "#ff6b6b" : "#51cf66";
@@ -2460,7 +2458,7 @@
             const humidity = readings.humidity_value;
             humidity.timestamp = timestamp;
             previousReadings.humidity_value = humidity;
-            
+
             document.getElementById(
               "lcdHumidity"
             ).textContent = `${humidity.value}${humidity.unit}`;

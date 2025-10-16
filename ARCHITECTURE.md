@@ -403,11 +403,13 @@ PI_webUI_for_test-monitoring/
 ## 🎯 Summary
 
 **Current State:**
+
 - ❌ LCD reader server has 3 critical bugs
 - ❌ Not working at all (0% detection rate)
 - ❌ Using wrong capture method, OCR, and model
 
 **After Fix:**
+
 - ✅ Direct camera capture (simple, fast)
 - ✅ EasyOCR (accurate for LCD)
 - ✅ ONNX model (3-5x faster)
@@ -416,6 +418,7 @@ PI_webUI_for_test-monitoring/
 - ✅ Works on Pi 3B+
 
 **How to Fix:**
+
 ```bash
 bash quick_fix_lcd.sh
 ```

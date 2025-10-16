@@ -7,12 +7,14 @@ Based on the repository analysis, here's what has been set up:
 ### ✅ What's Already Done
 
 1. **YOLO Model Training**
+
    - YOLOv8n model trained for LCD display detection
    - Models available: `incubator_yolov8n.pt`, `incubator_yolov8n.onnx`
    - Located in: `lcd_ocr_readings/models/`
    - Classes: `heart_rate_value`, `spo2_value`, `skin_temp_value`, `humidity_value`
 
 2. **LCD Reading Server (`lcd_reading_server.py`)**
+
    - HTTP server on port 9001
    - Captures frames from **mjpg_streamer on port 8081**
    - Runs YOLO detection + Tesseract OCR
@@ -20,6 +22,7 @@ Based on the repository analysis, here's what has been set up:
    - Continuous reading every 5 seconds
 
 3. **Dashboard Integration (`index.html`)**
+
    - LCD readings section already added
    - Displays: Heart Rate, SpO2, Temperature, Humidity
    - Auto-polling from LCD server
@@ -34,11 +37,13 @@ Based on the repository analysis, here's what has been set up:
 The LCD reader is **not working** because:
 
 1. **Camera Configuration Issue**
+
    - LCD server is trying to read from **HTTP stream (port 8081)**
    - But the actual camera is on **USB 2.0 (video0)**
    - Server should directly access camera device, not HTTP stream
 
 2. **Model Path Issue**
+
    - Server configured for `.pt` (PyTorch) model
    - Should use `.onnx` for better Pi 3B+ performance
 
@@ -53,6 +58,7 @@ The LCD reader is **not working** because:
 ### Problem 1: Camera Capture Method
 
 **Current Code (WRONG):**
+
 ```python
 # lcd_reading_server.py line 192
 def capture_frame(self):
@@ -62,11 +68,13 @@ def capture_frame(self):
 ```
 
 **Why it's wrong:**
+
 - The USB 2.0 camera is on `/dev/video0` (or `/dev/video2`)
 - Port 8081 is for **streaming**, not for OCR processing
 - Should capture directly from camera device with OpenCV
 
 **Should be:**
+
 ```python
 def capture_frame(self):
     """Capture a frame directly from camera device"""
@@ -81,6 +89,7 @@ def capture_frame(self):
 ### Problem 2: OCR Engine
 
 **Current Code:**
+
 ```python
 # Uses pytesseract (Tesseract OCR)
 import pytesseract
@@ -88,6 +97,7 @@ pytesseract.image_to_data(processed, ...)
 ```
 
 **Should use EasyOCR:**
+
 ```python
 import easyocr
 self.reader = easyocr.Reader(['en'], gpu=False)
@@ -97,11 +107,13 @@ results = self.reader.readtext(processed)
 ### Problem 3: Model Format
 
 **Current Config:**
+
 ```python
 MODEL_PATH = "/home/sahan/monitoring/models/incubator_yolov8n.pt"  # PyTorch
 ```
 
 **Should be:**
+
 ```python
 MODEL_PATH = "/home/sahan/monitoring/models/incubator_yolov8n.onnx"  # ONNX
 ```
@@ -135,7 +147,7 @@ sudo apt-get install v4l-utils
 # Check camera 0
 v4l2-ctl --device=/dev/video0 --all | grep "Driver Info" -A 5
 
-# Check camera 1  
+# Check camera 1
 v4l2-ctl --device=/dev/video1 --all | grep "Driver Info" -A 5
 
 # Check camera 2
@@ -159,6 +171,7 @@ python3 -c "import cv2; cap = cv2.VideoCapture(2); ret, frame = cap.read(); prin
 I'll create a corrected version of `lcd_reading_server.py`:
 
 **Key Changes:**
+
 1. ✅ Direct camera capture (not HTTP stream)
 2. ✅ Use EasyOCR instead of Tesseract
 3. ✅ Use ONNX model for better performance
@@ -207,6 +220,7 @@ nano /home/sahan/monitoring/lcd_reading_server.py
 ```
 
 Change line ~50:
+
 ```python
 # Set to the correct camera index (0, 2, etc.)
 LCD_CAMERA_INDEX = 0  # or 2, based on your testing
@@ -224,6 +238,7 @@ python3 lcd_reading_server.py
 ```
 
 **Expected Output:**
+
 ```
 ============================================================
 🚀 LCD Reading Server for Raspberry Pi
@@ -257,7 +272,7 @@ The dashboard (`index.html`) already has LCD section, but verify the port:
 
 ```javascript
 // Line ~1337 in index.html
-const LCD_PORT = 9001;  // Should match server port
+const LCD_PORT = 9001; // Should match server port
 ```
 
 ### Step 8: Start the Service
@@ -318,6 +333,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/test_lcd_capture.jpg .
 **Error:** `❌ Cannot open camera 0`
 
 **Solutions:**
+
 1. Check if camera is connected: `ls /dev/video*`
 2. Check if another process is using it: `sudo fuser /dev/video0`
 3. Try different camera index (0, 1, 2)
@@ -328,6 +344,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/test_lcd_capture.jpg .
 **Error:** `⚠️ No display regions detected`
 
 **Solutions:**
+
 1. Check camera image quality (save test image)
 2. Improve lighting on LCD display
 3. Lower confidence threshold:
@@ -341,6 +358,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/test_lcd_capture.jpg .
 **Error:** Wrong numbers detected
 
 **Solutions:**
+
 1. Check image preprocessing:
    - Increase image quality
    - Adjust brightness/contrast
@@ -353,6 +371,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/test_lcd_capture.jpg .
 **Error:** Long inference time
 
 **Solutions:**
+
 1. ✅ Use ONNX model (faster than PyTorch)
 2. Increase capture interval:
    ```python
@@ -374,6 +393,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/test_lcd_capture.jpg .
 **Error:** `Address already in use`
 
 **Solutions:**
+
 ```bash
 # Find what's using the port
 sudo lsof -i :9001
@@ -389,6 +409,7 @@ sudo kill -9 <PID>
 **Error:** `Cannot download language models`
 
 **Solution:**
+
 ```bash
 # Manually download models (if network issue)
 # Or use pre-downloaded models
@@ -402,21 +423,21 @@ mkdir -p ~/.EasyOCR/model
 
 ### Raspberry Pi 3B+ (Your Setup)
 
-| Metric | ONNX Model | PyTorch Model |
-|--------|-----------|---------------|
-| **Inference Time** | ~2-5 seconds | ~8-15 seconds |
+| Metric                   | ONNX Model   | PyTorch Model |
+| ------------------------ | ------------ | ------------- |
+| **Inference Time**       | ~2-5 seconds | ~8-15 seconds |
 | **Recommended Interval** | 5-10 seconds | 15-30 seconds |
-| **CPU Usage** | ~40-60% | ~80-100% |
-| **Memory Usage** | ~400 MB | ~600 MB |
+| **CPU Usage**            | ~40-60%      | ~80-100%      |
+| **Memory Usage**         | ~400 MB      | ~600 MB       |
 
 ### Expected Accuracy
 
-| Parameter | Detection Rate | OCR Accuracy |
-|-----------|---------------|--------------|
-| Heart Rate | >95% | >90% |
-| SpO2 | >95% | >90% |
-| Temperature | >95% | >85% |
-| Humidity | >90% | >85% |
+| Parameter   | Detection Rate | OCR Accuracy |
+| ----------- | -------------- | ------------ |
+| Heart Rate  | >95%           | >90%         |
+| SpO2        | >95%           | >90%         |
+| Temperature | >95%           | >85%         |
+| Humidity    | >90%           | >85%         |
 
 ---
 
@@ -499,6 +520,7 @@ cap.release()
 7. **Test dashboard**: Open dashboard and check LCD section
 
 Would you like me to:
+
 1. **Create the corrected `lcd_reading_server.py`** with all fixes?
 2. **Create a quick setup script** to automate the fix?
 3. **Help you SSH and debug** the current setup?

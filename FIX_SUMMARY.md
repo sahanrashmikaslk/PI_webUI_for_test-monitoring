@@ -7,12 +7,14 @@ After analyzing your entire repository, here's the situation with the LCD displa
 ### ✅ What's Already Set Up
 
 1. **YOLO Model Trained** ✅
+
    - YOLOv8n model for LCD detection
    - Models: `.pt` (PyTorch) and `.onnx` (ONNX) formats
    - Location: `lcd_ocr_readings/models/`
    - Detects: Heart Rate, SpO2, Temperature, Humidity
 
 2. **Dashboard Ready** ✅
+
    - LCD section already in `index.html`
    - Displays all 4 parameters
    - Auto-updates every 5 seconds
@@ -28,6 +30,7 @@ After analyzing your entire repository, here's the situation with the LCD displa
 **3 CRITICAL BUGS in `lcd_reading_server.py`:**
 
 #### Bug 1: Wrong Camera Capture Method 🎥
+
 ```python
 # CURRENT (WRONG):
 def capture_frame(self):
@@ -37,11 +40,13 @@ def capture_frame(self):
 ```
 
 **Problem:**
+
 - MJPEG stream on 8081 is for **viewing**, not OCR processing
 - HTTP streaming adds delay and complexity
 - Need direct camera access for best quality
 
 **FIX:**
+
 ```python
 # CORRECT:
 def capture_frame(self):
@@ -53,6 +58,7 @@ def capture_frame(self):
 ```
 
 #### Bug 2: Wrong OCR Engine 📝
+
 ```python
 # CURRENT (WRONG):
 import pytesseract  # Tesseract OCR
@@ -60,11 +66,13 @@ pytesseract.image_to_data(...)
 ```
 
 **Problem:**
+
 - Tesseract OCR not installed on Pi
 - Tesseract requires apt package (`tesseract-ocr`)
 - Your pipeline uses **EasyOCR** (better for LCD)
 
 **FIX:**
+
 ```python
 # CORRECT:
 import easyocr
@@ -73,16 +81,19 @@ results = self.reader.readtext(processed)
 ```
 
 #### Bug 3: Suboptimal Model Format ⚡
+
 ```python
 # CURRENT:
 MODEL_PATH = ".../incubator_yolov8n.pt"  # PyTorch
 ```
 
 **Problem:**
+
 - PyTorch model is slow on Pi 3B+ (~10-15 sec inference)
 - ONNX model is 3-5x faster (~2-5 sec inference)
 
 **FIX:**
+
 ```python
 # CORRECT:
 MODEL_PATH = ".../incubator_yolov8n.onnx"  # ONNX
@@ -95,7 +106,9 @@ MODEL_PATH = ".../incubator_yolov8n.onnx"  # ONNX
 I've created **3 files** to fix everything:
 
 ### 1. `lcd_reading_server_FIXED.py` ✨
+
 **Complete rewrite with all fixes:**
+
 - ✅ Direct camera capture from `/dev/video0` (or `/dev/video2`)
 - ✅ EasyOCR for text recognition
 - ✅ ONNX model for fast inference
@@ -104,12 +117,15 @@ I've created **3 files** to fix everything:
 - ✅ Debug endpoints for troubleshooting
 
 **Usage:**
+
 ```bash
 python3 lcd_reading_server_FIXED.py
 ```
 
 ### 2. `quick_fix_lcd.sh` 🚀
+
 **Automated deployment script that:**
+
 1. Tests SSH connection to Pi via Tailscale
 2. Detects available cameras (video0, video1, video2)
 3. Tests each camera to find USB 2.0 PC CAMERA
@@ -120,6 +136,7 @@ python3 lcd_reading_server_FIXED.py
 8. Starts server and tests API
 
 **Usage (from Windows PowerShell):**
+
 ```powershell
 # Make executable (in Git Bash)
 bash -c "chmod +x quick_fix_lcd.sh"
@@ -129,7 +146,9 @@ bash quick_fix_lcd.sh
 ```
 
 ### 3. `LCD_TROUBLESHOOTING_GUIDE.md` 📚
+
 **Complete troubleshooting guide with:**
+
 - Root cause analysis
 - Step-by-step fix instructions
 - Camera setup tips
@@ -154,6 +173,7 @@ bash quick_fix_lcd.sh
 ```
 
 **The script will:**
+
 - Guide you through camera selection
 - Install everything automatically
 - Test the setup
@@ -271,6 +291,7 @@ curl http://100.99.151.101:9001/readings | jq
 ### Test Dashboard
 
 Open in browser:
+
 ```
 http://100.99.151.101/index.html
 ```
@@ -314,6 +335,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/test_lcd.jpg .
 ### Issue 1: "Cannot open camera 0"
 
 **Solutions:**
+
 1. Try camera 2: `LCD_CAMERA_INDEX = 2`
 2. Check connections: `ls /dev/video*`
 3. Kill other processes: `sudo fuser /dev/video0`
@@ -321,6 +343,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/test_lcd.jpg .
 ### Issue 2: "No detections found"
 
 **Solutions:**
+
 1. Lower confidence: `CONFIDENCE_THRESHOLD = 0.15`
 2. Improve lighting on LCD
 3. Position camera closer/perpendicular
@@ -329,6 +352,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/test_lcd.jpg .
 ### Issue 3: "Wrong OCR readings"
 
 **Solutions:**
+
 1. Check image quality (save debug frame)
 2. Clean LCD screen
 3. Adjust camera focus
@@ -337,6 +361,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/test_lcd.jpg .
 ### Issue 4: "Slow inference"
 
 **Solutions:**
+
 1. Verify using ONNX (not .pt): Check logs
 2. Increase interval: `CAPTURE_INTERVAL = 10`
 3. Lower resolution: `cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)`
@@ -347,22 +372,22 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/test_lcd.jpg .
 
 ### Raspberry Pi 3B+ with ONNX Model
 
-| Metric | Value |
-|--------|-------|
-| **Inference Time** | 2-5 seconds |
+| Metric              | Value        |
+| ------------------- | ------------ |
+| **Inference Time**  | 2-5 seconds  |
 | **Update Interval** | 5-10 seconds |
-| **CPU Usage** | 40-60% |
-| **Memory** | ~400 MB |
-| **Detection Rate** | >95% |
-| **OCR Accuracy** | >85% |
+| **CPU Usage**       | 40-60%       |
+| **Memory**          | ~400 MB      |
+| **Detection Rate**  | >95%         |
+| **OCR Accuracy**    | >85%         |
 
 ### With PyTorch Model (Slow)
 
-| Metric | Value |
-|--------|-------|
-| **Inference Time** | 10-15 seconds |
+| Metric              | Value         |
+| ------------------- | ------------- |
+| **Inference Time**  | 10-15 seconds |
 | **Update Interval** | 15-30 seconds |
-| **CPU Usage** | 80-100% |
+| **CPU Usage**       | 80-100%       |
 
 **→ Always use ONNX!**
 
@@ -417,6 +442,7 @@ bash quick_fix_lcd.sh
 ```
 
 Follow the prompts. Script will:
+
 - Find correct camera
 - Install everything
 - Test the setup
@@ -425,6 +451,7 @@ Follow the prompts. Script will:
 ### 2. Review Results
 
 Check:
+
 - Server logs for errors
 - API responses for readings
 - Dashboard for display
@@ -432,6 +459,7 @@ Check:
 ### 3. Fine-Tune (if needed)
 
 Adjust:
+
 - Camera position/lighting
 - Confidence threshold
 - Capture interval
@@ -440,6 +468,7 @@ Adjust:
 ### 4. Enable Service
 
 Once working:
+
 ```bash
 sudo systemctl enable lcd-reading.service
 sudo systemctl start lcd-reading.service
@@ -452,6 +481,7 @@ sudo systemctl start lcd-reading.service
 Your setup is working when you see:
 
 1. **Server logs:**
+
    ```
    ✅ ONNX model loaded successfully
    ✅ EasyOCR initialized successfully
@@ -459,6 +489,7 @@ Your setup is working when you see:
    ```
 
 2. **API response:**
+
    ```json
    {
      "status": "success",
@@ -485,6 +516,7 @@ Your setup is working when you see:
 ### The Problem
 
 3 critical bugs prevented LCD reading:
+
 1. ❌ Wrong capture method (HTTP stream instead of direct camera)
 2. ❌ Wrong OCR engine (Tesseract instead of EasyOCR)
 3. ❌ Slow model format (PyTorch instead of ONNX)

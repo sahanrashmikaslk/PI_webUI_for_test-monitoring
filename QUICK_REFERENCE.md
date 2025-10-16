@@ -3,6 +3,7 @@
 ## 🚨 The Problem
 
 LCD display reader **not working** because of 3 bugs:
+
 1. ❌ Reading from HTTP stream instead of camera device
 2. ❌ Using Tesseract OCR (not installed) instead of EasyOCR
 3. ❌ Using slow PyTorch model instead of ONNX
@@ -19,13 +20,13 @@ bash quick_fix_lcd.sh
 
 ## 📋 What Gets Fixed
 
-| Component | Before (Broken) | After (Fixed) |
-|-----------|----------------|---------------|
-| **Camera Capture** | HTTP stream (port 8081) | Direct camera device |
-| **OCR Engine** | Tesseract (not installed) | EasyOCR (installed) |
-| **Model Format** | PyTorch (.pt) | ONNX (.onnx) |
-| **Inference Time** | 10-15 seconds | 2-5 seconds |
-| **Detection Rate** | 0% (not working) | >95% |
+| Component          | Before (Broken)           | After (Fixed)        |
+| ------------------ | ------------------------- | -------------------- |
+| **Camera Capture** | HTTP stream (port 8081)   | Direct camera device |
+| **OCR Engine**     | Tesseract (not installed) | EasyOCR (installed)  |
+| **Model Format**   | PyTorch (.pt)             | ONNX (.onnx)         |
+| **Inference Time** | 10-15 seconds             | 2-5 seconds          |
+| **Detection Rate** | 0% (not working)          | >95%                 |
 
 ---
 
@@ -68,6 +69,7 @@ bash quick_fix_lcd.sh
 **Time:** 10-15 minutes
 
 **What it does:**
+
 1. Tests SSH to Pi
 2. Finds correct camera (video0 or video2)
 3. Transfers fixed server
@@ -80,18 +82,21 @@ bash quick_fix_lcd.sh
 ### Option B: Manual (Step-by-Step)
 
 **1. Transfer files:**
+
 ```powershell
 scp lcd_reading_server_FIXED.py sahan@100.99.151.101:/home/sahan/monitoring/lcd_reading_server.py
 scp lcd_ocr_readings\models\incubator_yolov8n.onnx sahan@100.99.151.101:/home/sahan/monitoring/models/
 ```
 
 **2. Install packages:**
+
 ```bash
 ssh sahan@100.99.151.101
 pip3 install opencv-python-headless onnxruntime easyocr
 ```
 
 **3. Find camera:**
+
 ```bash
 # Test video0
 python3 -c "import cv2; cap = cv2.VideoCapture(0); ret, f = cap.read(); print(f'video0: {ret}'); cap.release()"
@@ -101,12 +106,14 @@ python3 -c "import cv2; cap = cv2.VideoCapture(2); ret, f = cap.read(); print(f'
 ```
 
 **4. Edit camera index:**
+
 ```bash
 nano /home/sahan/monitoring/lcd_reading_server.py
 # Line 40: LCD_CAMERA_INDEX = 0  # Change to 0 or 2
 ```
 
 **5. Test:**
+
 ```bash
 python3 lcd_reading_server.py
 # In another terminal:
@@ -145,6 +152,7 @@ http://100.99.151.101:9001/readings
 ```
 http://100.99.151.101/index.html
 ```
+
 Click **"▶️ Start"** in LCD section.
 
 ---
@@ -152,12 +160,14 @@ Click **"▶️ Start"** in LCD section.
 ## 📸 Camera Setup
 
 ### Position Camera
+
 1. Distance: **15-30 cm** from LCD
 2. Angle: **90° perpendicular** to screen
 3. Lighting: **Even, no glare**
 4. Focus: **Sharp, clear numbers**
 
 ### Test Image
+
 ```bash
 # Capture test image
 ssh sahan@100.99.151.101
@@ -181,6 +191,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/test_lcd.jpg .
 ## 🐛 Quick Troubleshooting
 
 ### Camera Not Working
+
 ```bash
 # Try different index
 nano lcd_reading_server.py
@@ -188,6 +199,7 @@ nano lcd_reading_server.py
 ```
 
 ### No Detections
+
 ```bash
 # Lower confidence
 nano lcd_reading_server.py
@@ -195,12 +207,14 @@ nano lcd_reading_server.py
 ```
 
 ### Slow Performance
+
 ```bash
 # Verify using ONNX (check logs for "Loading ONNX model")
 # If not, check MODEL_PATH points to .onnx file
 ```
 
 ### View Logs
+
 ```bash
 # Service logs
 sudo journalctl -u lcd-reading.service -f
@@ -216,6 +230,7 @@ tail -f /home/sahan/monitoring/lcd_server.log
 ### When Working
 
 **Server logs:**
+
 ```
 ✅ ONNX model loaded successfully
 ✅ EasyOCR initialized successfully
@@ -225,6 +240,7 @@ tail -f /home/sahan/monitoring/lcd_server.log
 ```
 
 **API response:**
+
 ```json
 {
   "status": "success",
@@ -243,6 +259,7 @@ tail -f /home/sahan/monitoring/lcd_server.log
 ```
 
 **Dashboard:**
+
 - Shows all 4 values
 - Updates every 5 seconds
 - Confidence > 80%
@@ -264,12 +281,12 @@ tail -f /home/sahan/monitoring/lcd_server.log
 
 ## 📞 Help & Resources
 
-| File | Purpose |
-|------|---------|
-| `FIX_SUMMARY.md` | Complete fix explanation |
+| File                           | Purpose                  |
+| ------------------------------ | ------------------------ |
+| `FIX_SUMMARY.md`               | Complete fix explanation |
 | `LCD_TROUBLESHOOTING_GUIDE.md` | Detailed troubleshooting |
-| `lcd_reading_server_FIXED.py` | Fixed server code |
-| `quick_fix_lcd.sh` | Automated deployment |
+| `lcd_reading_server_FIXED.py`  | Fixed server code        |
+| `quick_fix_lcd.sh`             | Automated deployment     |
 
 ---
 
@@ -303,6 +320,7 @@ ssh sahan@100.99.151.101 "curl -s http://localhost:9001/readings | jq '.status, 
 ```
 
 **Expected output:**
+
 ```
 "success"
 4

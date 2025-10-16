@@ -17,18 +17,19 @@
 
 ### Key Fixes Deployed
 
-| Bug | Before | After | Status |
-|-----|--------|-------|--------|
-| **Camera Capture** | Direct only (fails when busy) | Direct + HTTP fallback | ✅ **FIXED** |
-| **OCR Engine** | Tesseract (60% accuracy) | EasyOCR (95% accuracy) | ✅ **FIXED** |
-| **Model Format** | PyTorch .pt (2.5s) | ONNX (0.5s) | ✅ **FIXED** |
-| **Service Management** | None | systemd auto-start | ✅ **ADDED** |
+| Bug                    | Before                        | After                  | Status       |
+| ---------------------- | ----------------------------- | ---------------------- | ------------ |
+| **Camera Capture**     | Direct only (fails when busy) | Direct + HTTP fallback | ✅ **FIXED** |
+| **OCR Engine**         | Tesseract (60% accuracy)      | EasyOCR (95% accuracy) | ✅ **FIXED** |
+| **Model Format**       | PyTorch .pt (2.5s)            | ONNX (0.5s)            | ✅ **FIXED** |
+| **Service Management** | None                          | systemd auto-start     | ✅ **ADDED** |
 
 ---
 
 ## 🎯 Current Status
 
 ### System Services (All Running ✅)
+
 ```
 lcd-reading.service         ✅ loaded active running - LCD Reading Server (Port 9001)
 pi-camera-server.service    ✅ loaded active running - Camera Management
@@ -39,29 +40,32 @@ pi-health-server.service    ✅ loaded active running - System Health (Port 9000
 ```
 
 ### API Endpoints
-| Endpoint | URL | Status |
-|----------|-----|--------|
+
+| Endpoint     | URL                                 | Status        |
+| ------------ | ----------------------------------- | ------------- |
 | **Readings** | http://100.99.151.101:9001/readings | ✅ Responding |
-| **Health** | http://100.99.151.101:9001/health | ✅ Available |
-| **Capture** | http://100.99.151.101:9001/capture | ✅ Available |
-| **Debug** | http://100.99.151.101:9001/debug | ✅ Available |
-| **Info** | http://100.99.151.101:9001/ | ✅ Available |
+| **Health**   | http://100.99.151.101:9001/health   | ✅ Available  |
+| **Capture**  | http://100.99.151.101:9001/capture  | ✅ Available  |
+| **Debug**    | http://100.99.151.101:9001/debug    | ✅ Available  |
+| **Info**     | http://100.99.151.101:9001/         | ✅ Available  |
 
 ### Performance Metrics
-| Metric | Value |
-|--------|-------|
-| **Startup Time** | ~35 seconds (EasyOCR initialization) |
-| **Frame Capture** | ✅ Working (640x480 via HTTP stream) |
-| **ONNX Inference** | ✅ Loaded successfully |
-| **EasyOCR** | ✅ Initialized (CPU mode) |
-| **Reading Interval** | 5 seconds |
-| **Memory Usage** | ~280MB (as expected) |
+
+| Metric               | Value                                |
+| -------------------- | ------------------------------------ |
+| **Startup Time**     | ~35 seconds (EasyOCR initialization) |
+| **Frame Capture**    | ✅ Working (640x480 via HTTP stream) |
+| **ONNX Inference**   | ✅ Loaded successfully               |
+| **EasyOCR**          | ✅ Initialized (CPU mode)            |
+| **Reading Interval** | 5 seconds                            |
+| **Memory Usage**     | ~280MB (as expected)                 |
 
 ---
 
 ## ⚠️ Current Issue: No Detections
 
 ### Problem
+
 The service is running perfectly, but YOLO is not detecting the LCD display regions:
 
 ```
@@ -72,15 +76,18 @@ The service is running perfectly, but YOLO is not detecting the LCD display regi
 ### Possible Causes
 
 1. **Camera Positioning**
+
    - Camera may not be pointed at LCD display
    - LCD may be out of frame or partially visible
    - Focus may be off
 
 2. **Model Training**
+
    - YOLO model may not be trained for this specific camera angle/distance
    - Model may need retraining with images from this setup
 
 3. **Lighting/Contrast**
+
    - LCD display may have poor contrast in current lighting
    - Reflections or glare may be present
 
@@ -90,6 +97,7 @@ The service is running perfectly, but YOLO is not detecting the LCD display regi
 ### Diagnostic Steps
 
 **Check what the camera sees:**
+
 ```bash
 # View the latest debug image
 ssh sahan@100.99.151.101
@@ -100,6 +108,7 @@ scp sahan@100.99.151.101:/home/sahan/monitoring/lcd_capture_20251014_134831.jpg 
 ```
 
 **Lower confidence threshold (if needed):**
+
 ```bash
 ssh sahan@100.99.151.101
 sudo nano /home/sahan/monitoring/lcd_reading_server.py
@@ -111,6 +120,7 @@ sudo systemctl restart lcd-reading.service
 ```
 
 **Adjust camera position:**
+
 - Ensure LCD display is centered in frame
 - Check focus and distance
 - Verify adequate lighting without glare
@@ -120,26 +130,31 @@ sudo systemctl restart lcd-reading.service
 ## 🔧 Service Management
 
 ### Check Service Status
+
 ```bash
 ssh sahan@100.99.151.101 "sudo systemctl status lcd-reading.service"
 ```
 
 ### View Live Logs
+
 ```bash
 ssh sahan@100.99.151.101 "sudo journalctl -u lcd-reading.service -f"
 ```
 
 ### Restart Service
+
 ```bash
 ssh sahan@100.99.151.101 "sudo systemctl restart lcd-reading.service"
 ```
 
 ### Stop Service
+
 ```bash
 ssh sahan@100.99.151.101 "sudo systemctl stop lcd-reading.service"
 ```
 
 ### Disable Auto-Start
+
 ```bash
 ssh sahan@100.99.151.101 "sudo systemctl disable lcd-reading.service"
 ```
@@ -149,25 +164,28 @@ ssh sahan@100.99.151.101 "sudo systemctl disable lcd-reading.service"
 ## 📱 Test API Endpoints
 
 ### Get Current Readings
+
 ```bash
 curl http://100.99.151.101:9001/readings
 ```
 
 **Expected Response** (when working):
+
 ```json
 {
   "timestamp": "2025-10-14T13:48:30.123Z",
   "status": "success",
   "readings": {
-    "heart_rate": {"value": 120, "unit": "bpm", "valid": true},
-    "spo2": {"value": 98, "unit": "%", "valid": true},
-    "skin_temp": {"value": 36.5, "unit": "°C", "valid": true},
-    "humidity": {"value": 65, "unit": "%", "valid": true}
+    "heart_rate": { "value": 120, "unit": "bpm", "valid": true },
+    "spo2": { "value": 98, "unit": "%", "valid": true },
+    "skin_temp": { "value": 36.5, "unit": "°C", "valid": true },
+    "humidity": { "value": 65, "unit": "%", "valid": true }
   }
 }
 ```
 
 **Current Response** (no detections):
+
 ```json
 {
   "status": "no_data",
@@ -177,16 +195,19 @@ curl http://100.99.151.101:9001/readings
 ```
 
 ### Health Check
+
 ```bash
 curl http://100.99.151.101:9001/health
 ```
 
 ### Manual Capture
+
 ```bash
 curl http://100.99.151.101:9001/capture
 ```
 
 ### Debug Information
+
 ```bash
 curl http://100.99.151.101:9001/debug
 ```
@@ -198,16 +219,19 @@ curl http://100.99.151.101:9001/debug
 ### Immediate (To Fix Detection Issue)
 
 1. **Download and review debug images**
+
    ```bash
    scp sahan@100.99.151.101:/home/sahan/monitoring/lcd_capture_20251014_*.jpg ./debug_images/
    ```
 
 2. **Verify camera view**
+
    - Check if LCD display is visible in captured images
    - Ensure proper focus and lighting
    - Adjust camera position if needed
 
 3. **Test with lower confidence threshold**
+
    - Edit server config: `CONFIDENCE_THRESHOLD = 0.15`
    - Restart service
    - Check if detections appear
@@ -220,10 +244,12 @@ curl http://100.99.151.101:9001/debug
 ### Short-term Improvements
 
 1. **Add camera position validation**
+
    - Automated check for LCD display presence
    - Alert if no detections for extended period
 
 2. **Implement fallback readings**
+
    - Use last known good values
    - Add staleness indicators
 
@@ -234,10 +260,12 @@ curl http://100.99.151.101:9001/debug
 ### Long-term Optimization
 
 1. **Model optimization**
+
    - Fine-tune for specific LCD display
    - Optimize for Pi hardware
 
 2. **Dashboard integration**
+
    - Add LCD readings to main dashboard
    - Implement real-time alerts
 
@@ -249,17 +277,17 @@ curl http://100.99.151.101:9001/debug
 
 ## 📊 Comparison: Before vs After
 
-| Aspect | Before Deployment | After Deployment |
-|--------|-------------------|------------------|
-| **Server Status** | ❌ Not deployed | ✅ Running |
-| **Service Management** | ❌ None | ✅ systemd auto-start |
-| **API Endpoint** | ❌ Not available | ✅ Port 9001 active |
-| **Camera Capture** | ❌ Failed | ✅ Working (HTTP fallback) |
-| **OCR Engine** | ❌ Buggy (Tesseract) | ✅ EasyOCR initialized |
-| **Model Loading** | ❌ Slow (.pt) | ✅ Fast (ONNX) |
-| **Detection** | ❌ Unknown | ⚠️ No detections (needs tuning) |
-| **Memory Usage** | ❌ 450MB | ✅ 280MB |
-| **Startup Time** | ❌ Unknown | ✅ 35 seconds |
+| Aspect                 | Before Deployment    | After Deployment                |
+| ---------------------- | -------------------- | ------------------------------- |
+| **Server Status**      | ❌ Not deployed      | ✅ Running                      |
+| **Service Management** | ❌ None              | ✅ systemd auto-start           |
+| **API Endpoint**       | ❌ Not available     | ✅ Port 9001 active             |
+| **Camera Capture**     | ❌ Failed            | ✅ Working (HTTP fallback)      |
+| **OCR Engine**         | ❌ Buggy (Tesseract) | ✅ EasyOCR initialized          |
+| **Model Loading**      | ❌ Slow (.pt)        | ✅ Fast (ONNX)                  |
+| **Detection**          | ❌ Unknown           | ⚠️ No detections (needs tuning) |
+| **Memory Usage**       | ❌ 450MB             | ✅ 280MB                        |
+| **Startup Time**       | ❌ Unknown           | ✅ 35 seconds                   |
 
 ---
 
@@ -270,13 +298,14 @@ curl http://100.99.151.101:9001/debug
 ✅ **API Availability**: 100% uptime  
 ✅ **Performance**: 5x faster inference  
 ✅ **Resource Usage**: 38% less memory  
-⚠️ **Detection Accuracy**: 0% (needs camera positioning)  
+⚠️ **Detection Accuracy**: 0% (needs camera positioning)
 
 ---
 
 ## 🐛 Troubleshooting Guide
 
 ### Service Won't Start
+
 ```bash
 # Check logs
 sudo journalctl -u lcd-reading.service -n 100
@@ -289,6 +318,7 @@ ls -l /home/sahan/monitoring/lcd_reading_server.py
 ```
 
 ### High Memory Usage
+
 ```bash
 # Check process
 ps aux | grep lcd_reading_server
@@ -299,6 +329,7 @@ top -p $(pgrep -f lcd_reading_server)
 ```
 
 ### API Not Responding
+
 ```bash
 # Check if port is open
 netstat -tulpn | grep 9001
@@ -311,6 +342,7 @@ sudo iptables -L | grep 9001
 ```
 
 ### Camera Issues
+
 ```bash
 # List video devices
 ls -l /dev/video*
@@ -327,6 +359,7 @@ curl http://localhost:8081/?action=snapshot > test.jpg
 ## 📝 Configuration Files
 
 ### Service File: `/etc/systemd/system/lcd-reading.service`
+
 ```ini
 [Unit]
 Description=LCD Reading Server (Incubator Display OCR)
@@ -349,6 +382,7 @@ WantedBy=multi-user.target
 ```
 
 ### Key Server Configuration
+
 ```python
 LCD_CAMERA_INDEX = 0  # /dev/video0 (USB2.0 PC CAMERA)
 LCD_PORT = 9001
@@ -365,27 +399,27 @@ Update your dashboard HTML/JavaScript:
 
 ```javascript
 // Add to your dashboard
-const LCD_API = 'http://100.99.151.101:9001/readings';
+const LCD_API = "http://100.99.151.101:9001/readings";
 
 async function updateLCDReadings() {
   try {
     const response = await fetch(LCD_API);
     const data = await response.json();
-    
-    if (data.status === 'success') {
-      document.getElementById('heart-rate').textContent = 
-        data.readings.heart_rate.value + ' bpm';
-      document.getElementById('spo2').textContent = 
-        data.readings.spo2.value + '%';
-      document.getElementById('skin-temp').textContent = 
-        data.readings.skin_temp.value + '°C';
-      document.getElementById('humidity').textContent = 
-        data.readings.humidity.value + '%';
+
+    if (data.status === "success") {
+      document.getElementById("heart-rate").textContent =
+        data.readings.heart_rate.value + " bpm";
+      document.getElementById("spo2").textContent =
+        data.readings.spo2.value + "%";
+      document.getElementById("skin-temp").textContent =
+        data.readings.skin_temp.value + "°C";
+      document.getElementById("humidity").textContent =
+        data.readings.humidity.value + "%";
     } else {
-      console.log('No readings available:', data.message);
+      console.log("No readings available:", data.message);
     }
   } catch (error) {
-    console.error('Error fetching LCD readings:', error);
+    console.error("Error fetching LCD readings:", error);
   }
 }
 
@@ -399,6 +433,7 @@ updateLCDReadings(); // Initial call
 ## 📞 Support & Logs
 
 ### Key Log Files
+
 ```bash
 # Service logs
 sudo journalctl -u lcd-reading.service -f
@@ -411,7 +446,9 @@ tail -f /var/log/syslog | grep lcd-reading
 ```
 
 ### Debug Mode
+
 To enable verbose logging, edit the server and add:
+
 ```python
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -440,6 +477,7 @@ logging.basicConfig(level=logging.DEBUG)
 **The LCD reading server is successfully deployed and operational!** 🎉
 
 All core functionality is working:
+
 - ✅ Service running and stable
 - ✅ API responding on port 9001
 - ✅ Camera capture working (HTTP stream fallback)
