@@ -3,21 +3,16 @@
 LCD Reading Server for Raspberry Pi - FIXED VERSION
 Reads incubator display values using YOLO + EasyOCR and serves via HTTP API
 
-FIXES:
-1. Direct camera capture with HTTP stream fallback
-2. EasyOCR instead of Tesseract (better accuracy)
-3. PyTorch model (.pt) for better detection
-4. Proper preprocessing for LCD displays
-
 This server:
-1. Captures frames (direct camera or HTTP stream)
+1. Captures frames from HTTP stream (port 8081)
 2. Runs YOLO detection to find display regions
 3. Runs EasyOCR to extract values
 4. Validates and corrects readings
 5. Serves data as JSON via HTTP endpoint
+6. Provides annotated video stream
 
 Port: 9001
-Endpoints: /readings, /capture, /debug, /
+Endpoints: /readings, /capture, /debug, /stream, /
 
 Usage:
     python3 lcd_reading_server_FIXED.py
@@ -53,11 +48,13 @@ except ImportError:
     sys.exit(1)
 
 # Configuration
-LCD_CAMERA_INDEX = 1  # USB 2.0 PC CAMERA - /dev/video1 (port 8081) - pointed at LCD display
-LCD_PORT = 9001
+LCD_CAMERA_INDEX = 0  # Fallback camera index (/dev/video0)
+LCD_CAMERA_HTTP = "http://localhost:8081/?action=stream"  # Primary: use mjpg-streamer on 8081
+LCD_PORT = 9001  # HTTP server port
 MODEL_PATH = "/home/sahan/monitoring/models/incubator_yolov8n.pt"  # Using PyTorch for better detection
-CAPTURE_INTERVAL = 5  # Capture every 5 seconds
-CONFIDENCE_THRESHOLD = 0.1  # Lowered to detect more objects (testing)
+CAPTURE_INTERVAL = 30  # Capture every 30 seconds (was 15s - reduce RAM usage further)
+CONFIDENCE_THRESHOLD = 0.1  # Lowered to detect more objects
+AUTO_START_READING = False  # Set to False to disable automatic continuous reading (save RAM)
 
 # Medical parameter ranges (relaxed for real-world values)
 PARAMETER_RANGES = {
@@ -67,8 +64,9 @@ PARAMETER_RANGES = {
     'humidity_value': {'min': 30, 'max': 99, 'unit': '%', 'name': 'Humidity'}  # Increased to 99% for real-world values
 }
 
-# YOLO class names
-CLASS_NAMES = ['heart_rate_value', 'spo2_value', 'skin_temp_value', 'humidity_value']
+# YOLO class names - SWAPPED spo2_value and humidity_value to match actual LCD positions
+# Model class 1 detects humidity (not spo2), Model class 3 detects spo2 (not humidity)
+CLASS_NAMES = ['heart_rate_value', 'humidity_value', 'skin_temp_value', 'spo2_value']
 
 
 class LCDReader:
@@ -144,50 +142,52 @@ class LCDReader:
             return False
     
     def capture_frame(self):
-        """Capture frame - try direct camera first, fallback to HTTP stream"""
-        # Try direct camera access first
-        try:
-            cap = cv2.VideoCapture(self.camera_index)
-            
-            if cap.isOpened():
-                # Set camera properties for better quality
-                cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-                
-                # Read frame
-                ret, frame = cap.read()
-                cap.release()
-                
-                if ret and frame is not None:
-                    return frame
-        except Exception:
-            pass  # Silently fall through to HTTP stream
-        
-        # Fallback to HTTP stream from mjpg_streamer (camera is busy)
+        """Capture frame from HTTP stream (avoid camera conflicts with mjpg-streamer)"""
+        # Use HTTP stream ONLY - camera is already in use by mjpg-streamer on port 8081
         try:
             import urllib.request
+            import socket
             
-            # Determine stream URL based on camera index
-            # camera_index 1 = /dev/video1 = port 8081 (LCD camera - USB2.0 PC CAMERA)
-            # camera_index 4 = /dev/video4 = port 8080 (infant camera - V380)
-            stream_port = 8081 if self.camera_index == 1 else 8080
-            stream_url = f"http://localhost:{stream_port}/?action=snapshot"
+            # Set socket timeout globally
+            socket.setdefaulttimeout(10)
             
-            # Get snapshot from mjpg_streamer
+            # Use stream endpoint and grab first frame
+            stream_url = "http://localhost:8081/?action=stream"
+            
+            # Open stream and read one JPEG frame
             req = urllib.request.Request(stream_url)
-            with urllib.request.urlopen(req, timeout=3) as response:
-                jpeg_data = response.read()
-                img_array = np.frombuffer(jpeg_data, dtype=np.uint8)
-                frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+            with urllib.request.urlopen(req, timeout=10) as response:
+                # Read stream in smaller chunks for faster processing
+                bytes_buffer = b''
+                max_read = 500000  # Max 500KB per frame (640x480 JPEG is typically 50-150KB)
                 
-                if frame is not None:
-                    return frame
+                while len(bytes_buffer) < max_read:
+                    chunk = response.read(4096)  # Read 4KB at a time
+                    if not chunk:
+                        break
+                    bytes_buffer += chunk
+                    
+                    # Look for JPEG start (FFD8) and end (FFD9) markers
+                    start_marker = bytes_buffer.find(b'\xff\xd8')
+                    end_marker = bytes_buffer.find(b'\xff\xd9')
+                    
+                    if start_marker != -1 and end_marker != -1 and end_marker > start_marker:
+                        # Extract one complete JPEG frame
+                        jpeg_data = bytes_buffer[start_marker:end_marker+2]
+                        img_array = np.frombuffer(jpeg_data, dtype=np.uint8)
+                        frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+                        
+                        if frame is not None:
+                            return frame
+                        else:
+                            print("❌ Failed to decode frame from HTTP stream", flush=True)
+                            return None
             
-            print(f"❌ Failed to get frame from HTTP stream on port {stream_port}", flush=True)
+            print("❌ Could not extract frame from HTTP stream", flush=True)
             return None
             
         except Exception as e:
-            print(f"❌ Error capturing frame: {e}", flush=True)
+            print(f"❌ Error capturing frame from HTTP stream: {e}", flush=True)
             return None
     
     def preprocess_image(self, image):
@@ -435,6 +435,54 @@ class LCDReader:
         
         return None
     
+    def draw_label(self, image, text, anchor, color):
+        """Draw label with background on image (from incubator_pipeline)"""
+        x, y = anchor
+        text = text if text else ""
+        font = cv2.FONT_HERSHEY_DUPLEX
+        font_scale = 0.5
+        font_thickness = 1
+        (text_w, text_h), baseline = cv2.getTextSize(text, font, font_scale, font_thickness)
+        pad = 6
+        y = max(y, text_h + pad)
+        top_left = (x, y - text_h - pad)
+        bottom_right = (x + text_w + 2 * pad, y + baseline)
+        cv2.rectangle(image, top_left, bottom_right, color, thickness=-1)
+        text_org = (x + pad, y - pad)
+        cv2.putText(image, text, text_org, font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+    
+    def annotate_frame(self, frame, detections, readings):
+        """Annotate frame with bounding boxes and OCR results"""
+        annotated = frame.copy()
+        
+        # Colors: orange for numeric values
+        box_color = (60, 170, 255)  # BGR format (orange)
+        box_thickness = 2
+        
+        for det in detections:
+            class_name = det['class']
+            bbox = det['bbox']
+            det_conf = det['confidence']
+            
+            x1, y1, x2, y2 = map(int, bbox)
+            
+            # Draw bounding box
+            cv2.rectangle(annotated, (x1, y1), (x2, y2), box_color, box_thickness)
+            
+            # Get OCR value if available
+            if class_name in readings:
+                reading_data = readings[class_name]
+                value = reading_data.get('value', 'N/A')
+                unit = reading_data.get('unit', '')
+                label_text = f"{class_name}: {value}{unit}"
+            else:
+                label_text = f"{class_name}: --"
+            
+            # Draw label above box
+            self.draw_label(annotated, label_text, (x1, y1 - 8), box_color)
+        
+        return annotated
+    
     def save_debug_frame(self, frame, prefix="debug"):
         """Save debug frame to file"""
         try:
@@ -547,6 +595,7 @@ class LCDReader:
         self.is_running = True
         
         def reading_loop():
+            import gc  # Garbage collector for memory cleanup
             print(f"🔄 Starting continuous reading (interval: {interval}s)", flush=True)
             while self.is_running:
                 try:
@@ -559,6 +608,9 @@ class LCDReader:
                     print(f"❌ Error in reading loop: {e}", flush=True)
                     import traceback
                     traceback.print_exc()
+                
+                # Force garbage collection to prevent memory leaks
+                gc.collect()
                 
                 time.sleep(interval)
         
@@ -589,6 +641,10 @@ class LCDReadingHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_capture_response()
         elif self.path == '/debug':
             self.send_debug_capture_response()
+        elif self.path == '/annotated_snapshot':
+            self.send_annotated_snapshot()
+        elif self.path == '/stream':
+            self.send_mjpeg_stream()
         else:
             self.send_error(404, "Not Found")
     
@@ -700,17 +756,140 @@ class LCDReadingHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         except Exception as e:
             self.send_error(500, f"Error: {str(e)}")
     
+    def send_annotated_snapshot(self):
+        """Send a single annotated frame as JPEG"""
+        global lcd_reader
+        
+        if lcd_reader is None:
+            self.send_error(500, "LCD reader not initialized")
+            return
+        
+        try:
+            # Capture frame
+            frame = lcd_reader.capture_frame()
+            
+            if frame is None:
+                self.send_error(500, "Failed to capture frame")
+                return
+            
+            # Run detection
+            detections = lcd_reader.run_detection(frame)
+            
+            # Get current readings for annotation
+            readings = lcd_reader.get_last_reading().get('readings', {})
+            
+            # Annotate frame
+            if detections:
+                annotated = lcd_reader.annotate_frame(frame, detections, readings)
+            else:
+                annotated = frame
+            
+            # Encode as JPEG
+            _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            jpeg_bytes = jpeg.tobytes()
+            
+            # Send response
+            self.send_response(200)
+            self.send_header('Content-Type', 'image/jpeg')
+            self.send_header('Content-Length', len(jpeg_bytes))
+            self.add_cors_headers()
+            self.end_headers()
+            self.wfile.write(jpeg_bytes)
+            
+        except Exception as e:
+            print(f"❌ Error sending annotated snapshot: {e}", flush=True)
+            self.send_error(500, f"Error: {str(e)}")
+    
+    def send_mjpeg_stream(self):
+        """Send MJPEG stream of annotated frames - DISABLED TO SAVE RESOURCES"""
+        # COMMENTED OUT TO REDUCE RAM USAGE - Uncomment to re-enable annotated stream
+        self.send_error(503, "Annotated stream temporarily disabled to save resources")
+        return
+        
+        # global lcd_reader
+        # 
+        # if lcd_reader is None:
+        #     self.send_error(500, "LCD reader not initialized")
+        #     return
+        # 
+        # try:
+        #     self.send_response(200)
+        #     self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=frame')
+        #     self.add_cors_headers()
+        #     self.end_headers()
+        #     
+        #     while True:
+        #         try:
+        #             # Capture frame
+        #             frame = lcd_reader.capture_frame()
+        #             
+        #             if frame is None:
+        #                 time.sleep(0.1)
+        #                 continue
+        #             
+        #             # Get last detections from cached reading (don't run detection on every frame!)
+        #             last_reading = lcd_reader.get_last_reading()
+        #             
+        #             # Use cached detections and readings if available
+        #             if last_reading.get('status') == 'success':
+        #                 readings = last_reading.get('readings', {})
+        #                 # Reconstruct detection boxes from cached readings
+        #                 cached_detections = []
+        #                 for param_name, param_data in readings.items():
+        #                     if 'bbox' in param_data:  # If we have cached bbox data
+        #                         cached_detections.append({
+        #                             'class_name': param_name,
+        #                             'confidence': param_data.get('detection_confidence', 0),
+        #                             'bbox': param_data['bbox']
+        #                         })
+        #                 
+        #                 # Annotate frame with cached detections
+        #                 if cached_detections:
+        #                     annotated = lcd_reader.annotate_frame(frame, cached_detections, readings)
+        #                 else:
+        #                     # No cached detections yet, just show raw frame
+        #                     annotated = frame
+        #             else:
+        #                 # No readings yet, just show raw frame
+        #                 annotated = frame
+        #             
+        #             # Encode as JPEG
+        #             _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        #             jpeg_bytes = jpeg.tobytes()
+        #             
+        #             # Send frame
+        #             self.wfile.write(b'--frame\r\n')
+        #             self.wfile.write(b'Content-Type: image/jpeg\r\n')
+        #             self.wfile.write(f'Content-Length: {len(jpeg_bytes)}\r\n\r\n'.encode())
+        #             self.wfile.write(jpeg_bytes)
+        #             self.wfile.write(b'\r\n')
+        #             
+        #             # Clean up memory explicitly
+        #             del frame, annotated, jpeg, jpeg_bytes
+        #             
+        #             # Control frame rate (3 FPS - lower to save RAM and sync with readings)
+        #             time.sleep(0.33)
+        #             
+        #         except Exception as e:
+        #             print(f"❌ Error in stream: {e}", flush=True)
+        #             break
+        #             
+        # except Exception as e:
+        #     print(f"❌ Error starting stream: {e}", flush=True)
+    
     def send_info_response(self):
         """Send API info"""
         info = {
-            "message": "LCD Reading API - FIXED VERSION",
-            "version": "2.0.0",
+            "message": "LCD Reading API - FIXED VERSION (Stream Disabled)",
+            "version": "2.0.1",
             "camera_index": LCD_CAMERA_INDEX,
             "model": MODEL_PATH,
             "endpoints": {
                 "/readings": "Get latest LCD readings (cached)",
                 "/capture": "Capture new reading immediately",
                 "/debug": "Capture debug frame and show detection info",
+                "/annotated_snapshot": "Get single annotated frame as JPEG",
+                "/stream": "DISABLED - Annotated stream disabled to save resources",
                 "/": "This info page"
             },
             "timestamp": time.time()
@@ -757,8 +936,12 @@ def run_server(port=LCD_PORT):
         traceback.print_exc()
         return
     
-    # Start continuous reading
-    lcd_reader.start_continuous_reading(interval=CAPTURE_INTERVAL)
+    # Start continuous reading (DISABLED by default to save RAM - use /capture endpoint for manual readings)
+    if AUTO_START_READING:
+        lcd_reader.start_continuous_reading(interval=CAPTURE_INTERVAL)
+        print(f"🔄 Continuous reading started (interval: {CAPTURE_INTERVAL}s)", flush=True)
+    else:
+        print(f"⏸️  Continuous reading DISABLED (use /capture endpoint for manual readings)", flush=True)
     
     # Start HTTP server
     server_address = ('', port)

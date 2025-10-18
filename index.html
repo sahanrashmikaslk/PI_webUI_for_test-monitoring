@@ -592,6 +592,7 @@
 
               <!-- Camera 2 -->
               <div>
+                <!-- Raw Camera Stream -->
                 <div class="camera-container">
                   <img
                     id="cam2"
@@ -607,6 +608,27 @@
                     </div>
                   </div>
                 </div>
+                
+                
+                
+                <!-- Annotated Stream Window (below raw camera) -->
+                <div style="margin-top: 0.5rem; border-radius: 8px; overflow: hidden; background: #000;">
+                  <iframe
+                    id="lcdAnnotatedStream"
+                    alt="LCD with Annotations"
+                    style="display: none; width: 100%; height: 360px; border: none; background: #000;"
+                    allowfullscreen
+                  ></iframe>
+                  <div 
+                    id="annotatedOverlay"
+                    style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1rem; color: var(--text-muted); font-size: 0.75rem; min-height: 100px; background: var(--surface);"
+                  >
+                    <div>📊</div>
+                    <div style="margin-top: 0.3rem">Annotated View</div>
+                    <div style="margin-top: 0.3rem; font-size: 0.65rem;">Port: 9001</div>
+                  </div>
+                </div>
+                
                 <div class="camera-controls" style="margin-top: 0.5rem">
                   <input
                     id="port2"
@@ -1058,7 +1080,7 @@
                 ⚪ Not monitoring
               </div>
 
-              <!-- LCD Parameters Grid -->
+              <!-- LCD Parameters Grid (matches actual LCD display layout) -->
               <div
                 style="
                   display: grid;
@@ -1066,31 +1088,7 @@
                   gap: 0.8rem;
                 "
               >
-                <!-- Heart Rate -->
-                <div class="metric-card" style="padding: 0.8rem">
-                  <div
-                    class="metric-value"
-                    id="lcdHeartRate"
-                    style="color: #ff6b6b; font-size: 1.5rem"
-                  >
-                    --
-                  </div>
-                  <div class="metric-label" style="font-size: 0.75rem">
-                    ❤️ Heart Rate
-                  </div>
-                  <div
-                    id="lcdHeartRateConf"
-                    style="
-                      font-size: 0.65rem;
-                      color: var(--text-muted);
-                      margin-top: 0.2rem;
-                    "
-                  >
-                    Confidence: --
-                  </div>
-                </div>
-
-                <!-- SpO2 -->
+                <!-- SpO2 (top-left on actual LCD: 98) -->
                 <div class="metric-card" style="padding: 0.8rem">
                   <div
                     class="metric-value"
@@ -1114,7 +1112,31 @@
                   </div>
                 </div>
 
-                <!-- Skin Temperature -->
+                <!-- Heart Rate (top-center on actual LCD: 174) -->
+                <div class="metric-card" style="padding: 0.8rem">
+                  <div
+                    class="metric-value"
+                    id="lcdHeartRate"
+                    style="color: #ff6b6b; font-size: 1.5rem"
+                  >
+                    --
+                  </div>
+                  <div class="metric-label" style="font-size: 0.75rem">
+                    ❤️ Heart Rate
+                  </div>
+                  <div
+                    id="lcdHeartRateConf"
+                    style="
+                      font-size: 0.65rem;
+                      color: var(--text-muted);
+                      margin-top: 0.2rem;
+                    "
+                  >
+                    Confidence: --
+                  </div>
+                </div>
+
+                <!-- Skin Temperature (top-right on actual LCD: 36.3°C) -->
                 <div class="metric-card" style="padding: 0.8rem">
                   <div
                     class="metric-value"
@@ -1138,7 +1160,7 @@
                   </div>
                 </div>
 
-                <!-- Humidity -->
+                <!-- Humidity (bottom-right on actual LCD: 59%) -->
                 <div class="metric-card" style="padding: 0.8rem">
                   <div
                     class="metric-value"
@@ -1333,7 +1355,7 @@
       let PI_IP = "100.99.151.101"; // Pi IP - can be changed via UI
       const HEALTH_PORT = 9000;
       const CRY_PORT = 8888;
-      const LCD_PORT = 9001;
+      const LCD_PORT = 9001;  // LCD reading API with annotations
       const TERMINAL_PORT = 7681;
 
       // === PI IP MANAGEMENT ===
@@ -1476,6 +1498,10 @@
         console.log(`📍 Health API: http://${PI_IP}:${HEALTH_PORT}/health`);
         console.log(`🎤 Cry API: http://${PI_IP}:${CRY_PORT}/cry/status`);
         console.log(`💻 Terminal: http://${PI_IP}:${TERMINAL_PORT}`);
+
+        // Initialize LCD annotated stream iframe (hidden by default)
+        const streamFrame = document.getElementById("lcdAnnotatedStream");
+        streamFrame.style.display = "none";
 
         // Initialize terminal iframe
         const terminalFrame = document.getElementById("terminalFrame");
@@ -2241,11 +2267,25 @@
 
         console.log("📊 Starting LCD reading monitoring...");
 
-        // Fetch immediately
+        // Start annotated video stream on port 9001 (separate window below camera)
+        // Using iframe for better MJPEG stream support
+        const streamFrame = document.getElementById("lcdAnnotatedStream");
+        const annotatedOverlay = document.getElementById("annotatedOverlay");
+        
+        const streamUrl = `http://${PI_IP}:${LCD_PORT}/stream`;
+        console.log(`📺 Loading annotated stream from: ${streamUrl}`);
+        
+        streamFrame.src = streamUrl;
+        streamFrame.style.display = "block";
+        if (annotatedOverlay) {
+          annotatedOverlay.style.display = "none";
+        }
+
+        // Fetch readings immediately
         fetchLCDReadings();
 
-        // Then poll every 10 seconds (better for processing time)
-        lcdInterval = setInterval(fetchLCDReadings, 10000);
+        // Poll every 15 seconds (matches backend capture interval)
+        lcdInterval = setInterval(fetchLCDReadings, 15000);
 
         updateLCDStatus("monitoring", "🔄 Monitoring active");
       }
@@ -2259,6 +2299,15 @@
         document.getElementById("lcdBtn").textContent = "▶️ Start";
         document.getElementById("lcdBtn").classList.remove("btn-danger");
         document.getElementById("lcdBtn").classList.add("btn-success");
+
+        // Stop annotated video stream
+        const streamFrame = document.getElementById("lcdAnnotatedStream");
+        const annotatedOverlay = document.getElementById("annotatedOverlay");
+        streamFrame.src = "";
+        streamFrame.style.display = "none";
+        if (annotatedOverlay) {
+          annotatedOverlay.style.display = "flex";
+        }
 
         console.log("⏹️ LCD reading monitoring stopped");
 
