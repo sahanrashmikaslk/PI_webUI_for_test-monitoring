@@ -52,9 +52,8 @@ LCD_CAMERA_INDEX = 0  # Fallback camera index (/dev/video0)
 LCD_CAMERA_HTTP = "http://localhost:8081/?action=stream"  # Primary: use mjpg-streamer on 8081
 LCD_PORT = 9001  # HTTP server port
 MODEL_PATH = "/home/sahan/monitoring/models/incubator_yolov8n.pt"  # Using PyTorch for better detection
-CAPTURE_INTERVAL = 30  # Capture every 30 seconds (was 15s - reduce RAM usage further)
+CAPTURE_INTERVAL = 15  # Capture every 15 seconds (reduce RAM usage)
 CONFIDENCE_THRESHOLD = 0.1  # Lowered to detect more objects
-AUTO_START_READING = False  # Set to False to disable automatic continuous reading (save RAM)
 
 # Medical parameter ranges (relaxed for real-world values)
 PARAMETER_RANGES = {
@@ -936,12 +935,8 @@ def run_server(port=LCD_PORT):
         traceback.print_exc()
         return
     
-    # Start continuous reading (DISABLED by default to save RAM - use /capture endpoint for manual readings)
-    if AUTO_START_READING:
-        lcd_reader.start_continuous_reading(interval=CAPTURE_INTERVAL)
-        print(f"🔄 Continuous reading started (interval: {CAPTURE_INTERVAL}s)", flush=True)
-    else:
-        print(f"⏸️  Continuous reading DISABLED (use /capture endpoint for manual readings)", flush=True)
+    # Start continuous reading
+    lcd_reader.start_continuous_reading(interval=CAPTURE_INTERVAL)
     
     # Start HTTP server
     server_address = ('', port)

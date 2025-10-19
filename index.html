@@ -608,27 +608,50 @@
                     </div>
                   </div>
                 </div>
-                
-                
-                
+
                 <!-- Annotated Stream Window (below raw camera) -->
-                <div style="margin-top: 0.5rem; border-radius: 8px; overflow: hidden; background: #000;">
+                <div
+                  style="
+                    margin-top: 0.5rem;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    background: #000;
+                  "
+                >
                   <iframe
                     id="lcdAnnotatedStream"
                     alt="LCD with Annotations"
-                    style="display: none; width: 100%; height: 360px; border: none; background: #000;"
+                    style="
+                      display: none;
+                      width: 100%;
+                      height: 360px;
+                      border: none;
+                      background: #000;
+                    "
                     allowfullscreen
                   ></iframe>
-                  <div 
+                  <div
                     id="annotatedOverlay"
-                    style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1rem; color: var(--text-muted); font-size: 0.75rem; min-height: 100px; background: var(--surface);"
+                    style="
+                      display: flex;
+                      flex-direction: column;
+                      justify-content: center;
+                      align-items: center;
+                      padding: 1rem;
+                      color: var(--text-muted);
+                      font-size: 0.75rem;
+                      min-height: 100px;
+                      background: var(--surface);
+                    "
                   >
                     <div>📊</div>
                     <div style="margin-top: 0.3rem">Annotated View</div>
-                    <div style="margin-top: 0.3rem; font-size: 0.65rem;">Port: 9001</div>
+                    <div style="margin-top: 0.3rem; font-size: 0.65rem">
+                      Port: 9001
+                    </div>
                   </div>
                 </div>
-                
+
                 <div class="camera-controls" style="margin-top: 0.5rem">
                   <input
                     id="port2"
@@ -1355,7 +1378,7 @@
       let PI_IP = "100.99.151.101"; // Pi IP - can be changed via UI
       const HEALTH_PORT = 9000;
       const CRY_PORT = 8888;
-      const LCD_PORT = 9001;  // LCD reading API with annotations
+      const LCD_PORT = 9001; // LCD reading API with annotations
       const TERMINAL_PORT = 7681;
 
       // === PI IP MANAGEMENT ===
@@ -2271,10 +2294,10 @@
         // Using iframe for better MJPEG stream support
         const streamFrame = document.getElementById("lcdAnnotatedStream");
         const annotatedOverlay = document.getElementById("annotatedOverlay");
-        
+
         const streamUrl = `http://${PI_IP}:${LCD_PORT}/stream`;
         console.log(`📺 Loading annotated stream from: ${streamUrl}`);
-        
+
         streamFrame.src = streamUrl;
         streamFrame.style.display = "block";
         if (annotatedOverlay) {
