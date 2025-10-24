@@ -1,0 +1,16 @@
+[Unit]
+Description=Test Dashboard Web Server
+After=network.target
+
+[Service]
+Type=simple
+User=sahan
+WorkingDirectory=/home/sahan
+ExecStart=/usr/bin/python3 /home/sahan/test_dashboard_server.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

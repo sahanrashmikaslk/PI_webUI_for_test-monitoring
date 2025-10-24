@@ -480,8 +480,8 @@
               id="piIpInput"
               type="text"
               class="input"
-              value="100.99.151.101"
-              placeholder="100.99.151.101"
+              value="100.89.162.22"
+              placeholder="100.89.162.22"
               style="width: 140px; padding: 0.4rem 0.6rem; font-size: 0.85rem"
             />
             <button
@@ -515,7 +515,7 @@
         <!-- Left Column: Cameras + Audio -->
         <div style="display: flex; flex-direction: column; gap: 1rem">
           <!-- Camera Section -->
-          <div class="card" style="flex: 1">
+          <div class="card" style="flex: 0 0 auto; max-height: 420px">
             <div class="card-header">
               <h2 class="card-title">
                 <div class="card-icon">📹</div>
@@ -609,49 +609,6 @@
                   </div>
                 </div>
 
-                <!-- Annotated Stream Window (below raw camera) -->
-                <div
-                  style="
-                    margin-top: 0.5rem;
-                    border-radius: 8px;
-                    overflow: hidden;
-                    background: #000;
-                  "
-                >
-                  <iframe
-                    id="lcdAnnotatedStream"
-                    alt="LCD with Annotations"
-                    style="
-                      display: none;
-                      width: 100%;
-                      height: 360px;
-                      border: none;
-                      background: #000;
-                    "
-                    allowfullscreen
-                  ></iframe>
-                  <div
-                    id="annotatedOverlay"
-                    style="
-                      display: flex;
-                      flex-direction: column;
-                      justify-content: center;
-                      align-items: center;
-                      padding: 1rem;
-                      color: var(--text-muted);
-                      font-size: 0.75rem;
-                      min-height: 100px;
-                      background: var(--surface);
-                    "
-                  >
-                    <div>📊</div>
-                    <div style="margin-top: 0.3rem">Annotated View</div>
-                    <div style="margin-top: 0.3rem; font-size: 0.65rem">
-                      Port: 9001
-                    </div>
-                  </div>
-                </div>
-
                 <div class="camera-controls" style="margin-top: 0.5rem">
                   <input
                     id="port2"
@@ -687,174 +644,292 @@
             </div>
           </div>
 
-          <!-- Audio Monitoring Section -->
-          <div class="card" style="flex: 0 0 auto">
-            <div class="card-header">
-              <h2 class="card-title" style="font-size: 1rem">
-                <div class="card-icon">🎤</div>
-                Audio & Cry Detection
-              </h2>
-            </div>
+          <!-- Jaundice Detection & Audio Monitoring Row -->
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 1rem;
+              flex: 0 0 auto;
+            "
+          >
+            <!-- Jaundice Detection Section -->
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title" style="font-size: 1rem">
+                  <div class="card-icon">🩺</div>
+                  Jaundice Detection
+                </h2>
+              </div>
 
-            <div
-              style="
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 1rem;
-                padding: 1rem;
-              "
-            >
-              <!-- Cry Detection -->
-              <div class="cry-detector" style="padding: 0.8rem">
-                <div
-                  class="cry-status normal"
-                  id="cryStatus"
-                  style="font-size: 1rem; margin-bottom: 0.3rem"
-                >
-                  Normal
-                </div>
-
-                <!-- Audio Level Display -->
-                <div style="margin-bottom: 0.5rem">
+              <div style="padding: 1rem">
+                <!-- Jaundice Status -->
+                <div style="margin-bottom: 1rem">
                   <div
+                    id="jaundiceStatus"
+                    class="cry-status normal"
                     style="
-                      display: flex;
-                      justify-content: space-between;
-                      align-items: center;
-                      margin-bottom: 0.2rem;
+                      font-size: 1.1rem;
+                      margin-bottom: 0.5rem;
+                      text-align: center;
                     "
                   >
-                    <span style="font-size: 0.75rem; color: var(--text-muted)"
-                      >Audio Level:</span
-                    >
-                    <span
-                      id="audioLevel"
-                      style="
-                        font-size: 0.75rem;
-                        color: var(--primary);
-                        font-weight: bold;
-                      "
-                      >--</span
-                    >
+                    No Detection
                   </div>
                   <div
-                    class="progress-bar"
+                    id="jaundiceDetails"
                     style="
-                      height: 6px;
+                      font-size: 0.85rem;
+                      color: var(--text-muted);
+                      text-align: center;
+                    "
+                  >
+                    Click "Detect Now" to analyze
+                  </div>
+                </div>
+
+                <!-- Detection Info Grid -->
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 0.5rem;
+                    margin-bottom: 0.5rem;
+                  "
+                >
+                  <div
+                    style="
+                      text-align: center;
+                      padding: 0.5rem;
                       background: var(--surface);
-                      border-radius: 3px;
-                      overflow: hidden;
+                      border-radius: 8px;
                     "
                   >
                     <div
-                      id="audioProgress"
-                      class="progress-fill"
                       style="
-                        width: 0%;
-                        height: 100%;
-                        background: linear-gradient(
-                          90deg,
-                          var(--success),
-                          var(--warning),
-                          var(--danger)
-                        );
-                        transition: width 0.1s ease;
+                        font-size: 0.7rem;
+                        color: var(--text-muted);
+                        margin-bottom: 0.2rem;
                       "
-                    ></div>
+                    >
+                      Confidence
+                    </div>
+                    <div
+                      id="jaundiceConfidence"
+                      style="
+                        font-size: 1rem;
+                        font-weight: bold;
+                        color: var(--primary);
+                      "
+                    >
+                      --
+                    </div>
                   </div>
+                  <div
+                    style="
+                      text-align: center;
+                      padding: 0.5rem;
+                      background: var(--surface);
+                      border-radius: 8px;
+                    "
+                  >
+                    <div
+                      style="
+                        font-size: 0.7rem;
+                        color: var(--text-muted);
+                        margin-bottom: 0.2rem;
+                      "
+                    >
+                      Brightness
+                    </div>
+                    <div
+                      id="jaundiceBrightness"
+                      style="
+                        font-size: 1rem;
+                        font-weight: bold;
+                        color: var(--primary);
+                      "
+                    >
+                      --
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Last Checked Time -->
+                <div
+                  id="jaundiceLastChecked"
+                  style="
+                    font-size: 0.7rem;
+                    color: var(--text-muted);
+                    text-align: center;
+                    padding: 0.4rem;
+                    background: var(--surface);
+                    border-radius: 6px;
+                    margin-bottom: 1rem;
+                  "
+                >
+                  Last check: Never
+                </div>
+
+                <!-- Control Buttons -->
+                <div
+                  style="display: flex; gap: 0.5rem; justify-content: center"
+                >
+                  <button
+                    class="btn btn-primary"
+                    onclick="detectJaundice()"
+                    style="padding: 0.4rem 0.8rem; font-size: 0.85rem"
+                    title="Analyze current frame from infant camera"
+                  >
+                    🔍 Detect Now
+                  </button>
+                  <button
+                    class="btn btn-success"
+                    id="jaundiceAutoBtn"
+                    onclick="toggleJaundiceAuto()"
+                    style="padding: 0.4rem 0.8rem; font-size: 0.85rem"
+                    title="Monitor server's automatic detections (every 10 min)"
+                  >
+                    ⏹️ Stop
+                  </button>
                 </div>
 
                 <div
                   style="
                     font-size: 0.75rem;
                     color: var(--text-muted);
-                    margin-bottom: 0.8rem;
+                    margin-top: 0.8rem;
+                    text-align: center;
                   "
                 >
-                  Real-time Cry Detection
-                </div>
-                <div
-                  style="
-                    display: flex;
-                    gap: 0.4rem;
-                    justify-content: center;
-                    flex-wrap: wrap;
-                  "
-                >
-                  <button
-                    class="btn btn-primary"
-                    onclick="startPyCryMonitoring()"
-                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                    title="Start Python cry monitoring service on Pi"
-                  >
-                    🚀 Start Service
-                  </button>
-                  <button
-                    class="btn btn-success"
-                    onclick="startCryDetection()"
-                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                    title="Start dashboard cry detection monitoring"
-                  >
-                    🎧 Monitor
-                  </button>
-                  <button
-                    class="btn btn-secondary"
-                    onclick="stopCryDetection()"
-                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                    title="Stop dashboard monitoring"
-                  >
-                    ⏹️ Stop
-                  </button>
-                  <button
-                    class="btn btn-secondary"
-                    onclick="stopPyCryMonitoring()"
-                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                    title="Stop Python service on Pi"
-                  >
-                    🛑 Stop Service
-                  </button>
+                  Auto-detects every 10 min • Publishes to ThingsBoard
                 </div>
               </div>
+            </div>
 
-              <!-- Audio Player -->
-              <div>
-                <div style="margin-bottom: 0.5rem">
-                  <h4
+            <!-- Audio Monitoring Section -->
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title" style="font-size: 1rem">
+                  <div class="card-icon">🎤</div>
+                  Audio & Cry Detection
+                </h2>
+              </div>
+
+              <div style="padding: 1rem">
+                <!-- Cry Detection -->
+                <div
+                  class="cry-detector"
+                  style="padding: 0.8rem; margin-bottom: 1rem"
+                >
+                  <div
+                    class="cry-status normal"
+                    id="cryStatus"
+                    style="font-size: 1rem; margin-bottom: 0.3rem"
+                  >
+                    Normal
+                  </div>
+
+                  <!-- Audio Level Display -->
+                  <div style="margin-bottom: 0.5rem">
+                    <div
+                      style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 0.2rem;
+                      "
+                    >
+                      <span style="font-size: 0.75rem; color: var(--text-muted)"
+                        >Audio Level:</span
+                      >
+                      <span
+                        id="audioLevel"
+                        style="
+                          font-size: 0.75rem;
+                          color: var(--primary);
+                          font-weight: bold;
+                        "
+                        >--</span
+                      >
+                    </div>
+                    <div
+                      class="progress-bar"
+                      style="
+                        height: 6px;
+                        background: var(--surface);
+                        border-radius: 3px;
+                        overflow: hidden;
+                      "
+                    >
+                      <div
+                        id="audioProgress"
+                        class="progress-fill"
+                        style="
+                          width: 0%;
+                          height: 100%;
+                          background: linear-gradient(
+                            90deg,
+                            var(--success),
+                            var(--warning),
+                            var(--danger)
+                          );
+                          transition: width 0.1s ease;
+                        "
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div
                     style="
-                      font-size: 0.9rem;
-                      margin-bottom: 0.3rem;
-                      color: var(--text);
+                      font-size: 0.75rem;
+                      color: var(--text-muted);
+                      margin-bottom: 0.8rem;
                     "
                   >
-                    Audio Stream
-                  </h4>
-                  <audio
-                    id="audioPlayer"
-                    class="audio-player"
-                    controls
-                    preload="none"
-                    style="width: 100%; height: 35px"
+                    Real-time Cry Detection
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      gap: 0.4rem;
+                      justify-content: center;
+                      flex-wrap: wrap;
+                    "
                   >
-                    Your browser does not support the audio element.
-                  </audio>
-                </div>
-                <div
-                  style="display: flex; gap: 0.4rem; justify-content: center"
-                >
-                  <button
-                    class="btn"
-                    onclick="playAudioStream()"
-                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                  >
-                    ▶️ Play
-                  </button>
-                  <button
-                    class="btn btn-secondary"
-                    onclick="stopAudioStream()"
-                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                  >
-                    ⏹️ Stop
-                  </button>
+                    <button
+                      class="btn btn-primary"
+                      onclick="startPyCryMonitoring()"
+                      style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                      title="Start Python cry monitoring service on Pi"
+                    >
+                      🚀 Start Service
+                    </button>
+                    <button
+                      class="btn btn-success"
+                      onclick="startCryDetection()"
+                      style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                      title="Start dashboard cry detection monitoring"
+                    >
+                      🎧 Monitor
+                    </button>
+                    <button
+                      class="btn btn-secondary"
+                      onclick="stopCryDetection()"
+                      style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                      title="Stop dashboard monitoring"
+                    >
+                      ⏹️ Stop
+                    </button>
+                    <button
+                      class="btn btn-secondary"
+                      onclick="stopPyCryMonitoring()"
+                      style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                      title="Stop Python service on Pi"
+                    >
+                      🛑 Stop Service
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -875,9 +950,9 @@
                   id="pollInterval"
                   type="number"
                   class="input"
-                  value="10"
-                  min="1"
-                  max="60"
+                  value="30"
+                  min="5"
+                  max="120"
                   style="width: 45px; padding: 0.3rem; font-size: 0.8rem"
                 />
                 <span style="font-size: 0.8rem; color: var(--text-muted)"
@@ -1222,142 +1297,6 @@
               </div>
             </div>
           </div>
-
-          <!-- SSH Terminal -->
-          <div class="card" style="flex: 1">
-            <div class="card-header">
-              <h2 class="card-title" style="font-size: 1rem">
-                <div class="card-icon">💻</div>
-                SSH Terminal
-              </h2>
-              <div style="display: flex; gap: 0.5rem; align-items: center">
-                <span
-                  id="terminalStatus"
-                  style="font-size: 0.8rem; color: var(--text-muted)"
-                  >Connecting...</span
-                >
-                <button
-                  class="btn"
-                  onclick="openTerminalTab()"
-                  style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                >
-                  🔗 Open Tab
-                </button>
-                <button
-                  class="btn btn-secondary"
-                  onclick="refreshTerminal()"
-                  style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                >
-                  🔄 Refresh
-                </button>
-              </div>
-            </div>
-
-            <div class="terminal-container" style="height: calc(100% - 60px)">
-              <div class="terminal-header">
-                <div class="terminal-dot"></div>
-                <div class="terminal-dot"></div>
-                <div class="terminal-dot"></div>
-                <span
-                  style="
-                    margin-left: 1rem;
-                    font-size: 0.8rem;
-                    color: var(--text-muted);
-                  "
-                >
-                  SSH Terminal (Port 7681)
-                </span>
-              </div>
-
-              <!-- Terminal iframe with error handling -->
-              <div style="position: relative; height: calc(100% - 40px)">
-                <iframe
-                  id="terminalFrame"
-                  class="terminal-iframe"
-                  title="SSH Terminal"
-                  style="
-                    width: 100%;
-                    height: 100%;
-                    border: none;
-                    background: #1e1e1e;
-                  "
-                  onload="handleTerminalLoad()"
-                  onerror="handleTerminalError()"
-                ></iframe>
-
-                <!-- Error/Setup overlay -->
-                <div
-                  id="terminalOverlay"
-                  style="
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: #1e1e1e;
-                    color: #e6e8ea;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
-                    text-align: center;
-                    padding: 2rem;
-                    display: none;
-                  "
-                >
-                  <div style="font-size: 2rem; margin-bottom: 1rem">⚠️</div>
-                  <div
-                    style="
-                      font-size: 1.1rem;
-                      margin-bottom: 1rem;
-                      color: var(--warning);
-                    "
-                  >
-                    Terminal Not Available
-                  </div>
-                  <div
-                    style="
-                      font-size: 0.9rem;
-                      color: var(--text-muted);
-                      margin-bottom: 1.5rem;
-                      line-height: 1.5;
-                    "
-                  >
-                    The SSH terminal requires ttyd to be installed and running
-                    on your Pi.
-                  </div>
-                  <div
-                    style="
-                      background: var(--surface-light);
-                      border-radius: 8px;
-                      padding: 1rem;
-                      margin-bottom: 1rem;
-                      font-family: monospace;
-                      font-size: 0.8rem;
-                      text-align: left;
-                    "
-                  >
-                    <div style="color: var(--primary); margin-bottom: 0.5rem">
-                      Setup Commands (run on Pi):
-                    </div>
-                    <div style="color: var(--text-muted)">
-                      1. sudo apt update && sudo apt install -y ttyd
-                    </div>
-                    <div style="color: var(--text-muted)">
-                      2. ttyd -p 7681 -i 0.0.0.0 --writable bash
-                    </div>
-                  </div>
-                  <button
-                    class="btn btn-primary"
-                    onclick="refreshTerminal()"
-                    style="margin-top: 0.5rem"
-                  >
-                    🔄 Try Again
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </main>
@@ -1370,16 +1309,18 @@
       let cryDetectionInterval;
       let isAudioMonitoring = false;
       let audioMonitoringInterval;
-      let lastTerminalReload = 0; // Track last terminal reload time
-      let isTerminalReloading = false; // Prevent concurrent reloads
-      let terminalReloadCount = 0; // Track reload attempts
 
       // Pi configuration
-      let PI_IP = "100.99.151.101"; // Pi IP - can be changed via UI
+      let PI_IP = "100.89.162.22"; // Pi IP - can be changed via UI
       const HEALTH_PORT = 9000;
       const CRY_PORT = 8888;
       const LCD_PORT = 9001; // LCD reading API with annotations
-      const TERMINAL_PORT = 7681;
+      const JAUNDICE_PORT = 8887; // Jaundice detection API
+
+      // Jaundice detection state
+      let isJaundiceAutoPolling = false; // Auto-poll for server's 10-min detections
+      let jaundicePollingInterval;
+      let lastJaundiceTimestamp = null;
 
       // === PI IP MANAGEMENT ===
 
@@ -1520,24 +1461,6 @@
         console.log("🚀 Pi Monitoring Dashboard loaded");
         console.log(`📍 Health API: http://${PI_IP}:${HEALTH_PORT}/health`);
         console.log(`🎤 Cry API: http://${PI_IP}:${CRY_PORT}/cry/status`);
-        console.log(`💻 Terminal: http://${PI_IP}:${TERMINAL_PORT}`);
-
-        // Initialize LCD annotated stream iframe (hidden by default)
-        const streamFrame = document.getElementById("lcdAnnotatedStream");
-        streamFrame.style.display = "none";
-
-        // Initialize terminal iframe
-        const terminalFrame = document.getElementById("terminalFrame");
-        terminalFrame.src = `http://${PI_IP}:${TERMINAL_PORT}`;
-
-        // Set up terminal load event listeners for persistence
-        terminalFrame.onload = function () {
-          handleTerminalLoad();
-        };
-
-        terminalFrame.onerror = function () {
-          handleTerminalError();
-        };
 
         // Update debug info
         document.getElementById(
@@ -1565,6 +1488,43 @@
         setTimeout(() => {
           startLCDMonitoring();
         }, 1500); // Start after cameras are loaded
+
+        // Auto-start jaundice detection polling
+        console.log("🩺 Auto-starting jaundice detection polling...");
+        setTimeout(() => {
+          try {
+            console.log(
+              "⏰ Jaundice polling timeout fired, calling startJaundicePolling()"
+            );
+            startJaundicePolling();
+            // Update button state to show polling is active
+            const btn = document.getElementById("jaundiceAutoBtn");
+            if (btn) {
+              console.log("✅ Updated jaundice button state");
+              btn.textContent = "⏹️ Stop";
+              btn.classList.remove("btn-success");
+              btn.classList.add("btn-danger");
+            } else {
+              console.error("❌ Jaundice button not found!");
+            }
+          } catch (error) {
+            console.error("❌ Error starting jaundice polling:", error);
+          }
+        }, 3000); // Increased to 3 seconds to ensure page is fully loaded
+
+        // Auto-start cry detection monitoring
+        console.log("🎧 Auto-starting cry detection monitoring...");
+        setTimeout(() => {
+          try {
+            console.log(
+              "⏰ Cry detection timeout fired, calling startCryDetection()"
+            );
+            startCryDetection();
+            console.log("✅ Cry detection monitoring started");
+          } catch (error) {
+            console.error("❌ Error starting cry detection:", error);
+          }
+        }, 3500); // Start after jaundice polling
 
         // Handle page visibility changes for persistence
         document.addEventListener("visibilitychange", function () {
@@ -2235,30 +2195,6 @@
         }
       }
 
-      // === AUDIO FUNCTIONS ===
-
-      function playAudioStream() {
-        const audioPlayer = document.getElementById("audioPlayer");
-        const audioUrl = `http://${PI_IP}:8080/?action=stream`; // Adjust URL as needed
-
-        audioPlayer.src = audioUrl;
-        audioPlayer.play().catch((error) => {
-          console.error("❌ Audio play error:", error);
-          alert(
-            "Could not play audio stream. Check if audio streaming is available on the Pi."
-          );
-        });
-
-        console.log("🔊 Audio stream started");
-      }
-
-      function stopAudioStream() {
-        const audioPlayer = document.getElementById("audioPlayer");
-        audioPlayer.pause();
-        audioPlayer.src = "";
-        console.log("🔇 Audio stream stopped");
-      }
-
       // === LCD READING FUNCTIONS ===
 
       let isLCDMonitoring = false;
@@ -2290,20 +2226,6 @@
 
         console.log("📊 Starting LCD reading monitoring...");
 
-        // Start annotated video stream on port 9001 (separate window below camera)
-        // Using iframe for better MJPEG stream support
-        const streamFrame = document.getElementById("lcdAnnotatedStream");
-        const annotatedOverlay = document.getElementById("annotatedOverlay");
-
-        const streamUrl = `http://${PI_IP}:${LCD_PORT}/stream`;
-        console.log(`📺 Loading annotated stream from: ${streamUrl}`);
-
-        streamFrame.src = streamUrl;
-        streamFrame.style.display = "block";
-        if (annotatedOverlay) {
-          annotatedOverlay.style.display = "none";
-        }
-
         // Fetch readings immediately
         fetchLCDReadings();
 
@@ -2322,15 +2244,6 @@
         document.getElementById("lcdBtn").textContent = "▶️ Start";
         document.getElementById("lcdBtn").classList.remove("btn-danger");
         document.getElementById("lcdBtn").classList.add("btn-success");
-
-        // Stop annotated video stream
-        const streamFrame = document.getElementById("lcdAnnotatedStream");
-        const annotatedOverlay = document.getElementById("annotatedOverlay");
-        streamFrame.src = "";
-        streamFrame.style.display = "none";
-        if (annotatedOverlay) {
-          annotatedOverlay.style.display = "flex";
-        }
 
         console.log("⏹️ LCD reading monitoring stopped");
 
@@ -2597,117 +2510,326 @@
         statusDiv.style.color = type === "stopped" ? "#adb5bd" : "#ffffff";
       }
 
-      // === TERMINAL FUNCTIONS ===
+      // === JAUNDICE DETECTION FUNCTIONS ===
 
-      function openTerminalTab() {
-        const terminalUrl = `http://${PI_IP}:${TERMINAL_PORT}`;
-        window.open(terminalUrl, "_terminal");
-        console.log(`🔗 Opened terminal in new tab: ${terminalUrl}`);
-      }
+      let isJaundiceAutoActive = false;
+      let jaundiceAutoInterval = null;
 
-      function refreshTerminal() {
-        const now = Date.now();
-        const timeSinceLastReload = now - lastTerminalReload;
-
-        // Prevent excessive reloading - increased to 2 minutes minimum
-        if (timeSinceLastReload < 120000 || isTerminalReloading) {
-          console.log(
-            `🔄 Terminal refresh skipped - too recent (${Math.round(
-              timeSinceLastReload / 1000
-            )}s ago) or already reloading`
-          );
-          return;
-        }
-
-        // Track reload attempts
-        terminalReloadCount++;
-        if (terminalReloadCount > 3) {
-          console.log("🔄 Terminal refresh skipped - too many attempts");
-          return;
-        }
-
-        isTerminalReloading = true;
-        console.log("🔄 Refreshing terminal...");
-        const terminalFrame = document.getElementById("terminalFrame");
-        const terminalOverlay = document.getElementById("terminalOverlay");
-        const terminalStatus = document.getElementById("terminalStatus");
-
-        // Show loading state
-        terminalStatus.textContent = "Connecting...";
-        terminalStatus.style.color = "var(--warning)";
-        terminalOverlay.style.display = "none";
-
-        // Reload iframe
-        terminalFrame.src = `http://${PI_IP}:${TERMINAL_PORT}`;
-        lastTerminalReload = now;
-
-        // Set timeout to show error if doesn't load
-        setTimeout(() => {
-          isTerminalReloading = false;
-          if (terminalStatus.textContent === "Connecting...") {
-            handleTerminalError();
-          }
-        }, 8000); // Increased timeout
-      }
-
-      function handleTerminalLoad() {
-        console.log("✅ Terminal loaded successfully");
-        const terminalStatus = document.getElementById("terminalStatus");
-        const terminalOverlay = document.getElementById("terminalOverlay");
-
-        terminalStatus.textContent = "Connected";
-        terminalStatus.style.color = "var(--success)";
-        terminalOverlay.style.display = "none";
-
-        // Reset tracking variables on successful load
-        isTerminalReloading = false;
-        terminalReloadCount = 0;
-      }
-
-      function handleTerminalError() {
-        const now = Date.now();
-        const timeSinceLastReload = now - lastTerminalReload;
-
-        console.log("❌ Terminal failed to load");
-        const terminalStatus = document.getElementById("terminalStatus");
-        const terminalOverlay = document.getElementById("terminalOverlay");
-
-        terminalStatus.textContent = "Not Available";
-        terminalStatus.style.color = "var(--danger)";
-        terminalOverlay.style.display = "flex";
-
-        isTerminalReloading = false;
-
-        // DISABLED: Auto-retry to prevent popup issues
-        // Manual refresh only via button click
-        console.log(
-          "💻 Terminal auto-retry disabled - use manual refresh button"
-        );
-      }
-
-      async function checkTerminalAvailability() {
-        const terminalUrl = `http://${PI_IP}:${TERMINAL_PORT}`;
+      async function detectJaundice() {
+        const jaundiceUrl = `http://${PI_IP}:${JAUNDICE_PORT}/detect`;
+        const statusDiv = document.getElementById("jaundiceStatus");
+        const detailsDiv = document.getElementById("jaundiceDetails");
+        const confidenceDiv = document.getElementById("jaundiceConfidence");
+        const brightnessDiv = document.getElementById("jaundiceBrightness");
 
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          // Show loading state
+          statusDiv.textContent = "🔄 Analyzing...";
+          statusDiv.className = "cry-status normal";
+          detailsDiv.textContent = "Capturing frame from infant camera...";
+          confidenceDiv.textContent = "--";
+          brightnessDiv.textContent = "--";
 
-          const response = await fetch(terminalUrl, {
-            method: "HEAD",
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+          const response = await fetch(jaundiceUrl, {
+            method: "GET",
             signal: controller.signal,
+            headers: {
+              Accept: "application/json",
+            },
           });
 
           clearTimeout(timeoutId);
 
-          if (response.ok) {
-            handleTerminalLoad();
-          } else {
-            handleTerminalError();
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
           }
+
+          const data = await response.json();
+          updateJaundiceDisplay(data, "manual");
+
+          console.log("🩺 Manual jaundice detection result:", data);
         } catch (error) {
-          handleTerminalError();
+          console.error("❌ Jaundice detection error:", error);
+          statusDiv.textContent = "❌ Detection Failed";
+          statusDiv.className = "cry-status error";
+          detailsDiv.textContent = `Error: ${error.message}`;
+          confidenceDiv.textContent = "--";
+          brightnessDiv.textContent = "--";
         }
       }
+
+      async function fetchLatestJaundiceDetection() {
+        const jaundiceUrl = `http://${PI_IP}:${JAUNDICE_PORT}/latest`;
+        console.log("🔄 Fetching jaundice data from:", jaundiceUrl);
+
+        try {
+          const response = await fetch(jaundiceUrl, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          console.log("📡 Response received, status:", response.status);
+
+          if (!response.ok) {
+            console.warn("⚠️ Jaundice API returned status:", response.status);
+            // Show error state in UI
+            updateJaundiceDisplay(null, "auto");
+            return;
+          }
+
+          const data = await response.json();
+          console.log("🩺 Fetched jaundice data:", data);
+          console.log("   - Status:", data.status);
+          console.log("   - Timestamp:", data.timestamp);
+          console.log("   - Jaundice detected:", data.jaundice_detected);
+
+          // Always update display, even if timestamp hasn't changed
+          // This ensures we see the latest status (including "no_detection")
+          if (data) {
+            // Only update lastJaundiceTimestamp if we have actual detection data
+            if (data.timestamp && data.status !== "no_detection") {
+              lastJaundiceTimestamp = data.timestamp;
+            }
+            updateJaundiceDisplay(data, "auto");
+          }
+        } catch (error) {
+          // Show error in console and UI
+          console.error(
+            "❌ Could not fetch latest jaundice detection:",
+            error.message
+          );
+          console.error("❌ Full error:", error);
+          updateJaundiceDisplay(null, "auto");
+        }
+      }
+
+      function startJaundicePolling() {
+        console.log("📞 startJaundicePolling() function called");
+        console.log("   - isJaundiceAutoPolling:", isJaundiceAutoPolling);
+
+        if (isJaundiceAutoPolling) {
+          console.log("⚠️ Polling already running, exiting");
+          return; // Already running
+        }
+
+        isJaundiceAutoPolling = true;
+        console.log("🔄 Starting jaundice detection polling (30s interval)");
+
+        // Fetch immediately
+        console.log("🚀 Calling fetchLatestJaundiceDetection() immediately");
+        fetchLatestJaundiceDetection();
+
+        // Then poll every 30 seconds
+        jaundicePollingInterval = setInterval(
+          fetchLatestJaundiceDetection,
+          30000
+        );
+        console.log("✅ Interval set, polling every 30 seconds");
+      }
+
+      function stopJaundicePolling() {
+        isJaundiceAutoPolling = false;
+        if (jaundicePollingInterval) {
+          clearInterval(jaundicePollingInterval);
+          jaundicePollingInterval = null;
+        }
+        console.log("⏹️ Jaundice detection polling stopped");
+      }
+
+      function updateJaundiceDisplay(data, detectionType = "auto") {
+        console.log("🖼️ updateJaundiceDisplay called:", {
+          data,
+          detectionType,
+        });
+
+        const statusDiv = document.getElementById("jaundiceStatus");
+        const detailsDiv = document.getElementById("jaundiceDetails");
+        const confidenceDiv = document.getElementById("jaundiceConfidence");
+        const brightnessDiv = document.getElementById("jaundiceBrightness");
+        const lastCheckedDiv = document.getElementById("jaundiceLastChecked");
+
+        // Handle empty or missing data
+        if (!data) {
+          console.warn("⚠️ No data provided to updateJaundiceDisplay");
+          statusDiv.textContent = "⏳ Waiting...";
+          statusDiv.className = "cry-status normal";
+          detailsDiv.textContent =
+            "Auto-detection every 10 min. Click 'Detect Now' for instant check.";
+          confidenceDiv.textContent = "--";
+          brightnessDiv.textContent = "--";
+          lastCheckedDiv.textContent = "Last check: Never";
+          return;
+        }
+
+        // Handle no detection case (server hasn't done first detection yet)
+        if (
+          data.status === "no_detection" ||
+          data.message === "No detection data available yet"
+        ) {
+          statusDiv.textContent = "⏳ Waiting for first detection...";
+          statusDiv.className = "cry-status normal";
+          detailsDiv.textContent =
+            "Auto-detection runs every 10 min. Click 'Detect Now' for instant check.";
+          confidenceDiv.textContent = "--";
+          brightnessDiv.textContent = "--";
+          // Still show timestamp even for no_detection status
+          updateLastCheckedTime(data.timestamp, detectionType);
+          return;
+        }
+
+        // Handle different status cases
+        if (data.status === "too_dark") {
+          statusDiv.textContent = "🌙 Too Dark";
+          statusDiv.className = "cry-status error";
+          detailsDiv.textContent = "Image is too dark for reliable detection";
+          confidenceDiv.textContent = "--";
+          brightnessDiv.textContent = `${Math.round(data.brightness || 0)}`;
+          updateLastCheckedTime(data.timestamp, detectionType);
+          return;
+        }
+
+        if (data.status === "error") {
+          statusDiv.textContent = "❌ Error";
+          statusDiv.className = "cry-status error";
+          detailsDiv.textContent = data.message || "Detection failed";
+          confidenceDiv.textContent = "--";
+          brightnessDiv.textContent = "--";
+          updateLastCheckedTime(data.timestamp, detectionType);
+          return;
+        }
+
+        // Success case (status === "success")
+        const jaundiceDetected = data.jaundice_detected === true;
+        const confidence = Math.round((data.confidence || 0) * 100);
+        const probability = Math.round((data.probability || 0) * 100);
+        const brightness = Math.round(data.brightness || 0);
+        const reliability = data.reliability || 1.0;
+
+        // Format timestamp
+        let timeStr = "";
+        if (data.timestamp) {
+          const time = new Date(data.timestamp);
+          timeStr = time.toLocaleTimeString();
+        }
+
+        // Update status with detection type indicator
+        const typeEmoji = detectionType === "manual" ? "👆" : "🤖";
+        if (jaundiceDetected) {
+          statusDiv.textContent = `⚠️ Jaundice Detected ${typeEmoji}`;
+          statusDiv.className = "cry-status crying";
+        } else {
+          statusDiv.textContent = `✅ Normal ${typeEmoji}`;
+          statusDiv.className = "cry-status normal";
+        }
+
+        // Update details with reliability warning
+        let detailText = data.predicted_class || "Unknown";
+        if (reliability < 1.0) {
+          detailText += " (Low light)";
+        }
+        detailsDiv.textContent = detailText;
+
+        // Update confidence and brightness
+        confidenceDiv.textContent = `${confidence}%`;
+        brightnessDiv.textContent = `${brightness}`;
+
+        // Update last checked time
+        updateLastCheckedTime(data.timestamp, detectionType);
+
+        // Color code confidence
+        if (confidence >= 80) {
+          confidenceDiv.style.color = "#51cf66"; // Green
+        } else if (confidence >= 60) {
+          confidenceDiv.style.color = "#f9ca24"; // Yellow
+        } else {
+          confidenceDiv.style.color = "#ff6b6b"; // Red
+        }
+
+        // Color code brightness
+        if (brightness >= 70) {
+          brightnessDiv.style.color = "#51cf66"; // Good light
+        } else if (brightness >= 40) {
+          brightnessDiv.style.color = "#f9ca24"; // Low light
+        } else {
+          brightnessDiv.style.color = "#ff6b6b"; // Very dark
+        }
+      }
+
+      function updateLastCheckedTime(timestamp, detectionType) {
+        const lastCheckedDiv = document.getElementById("jaundiceLastChecked");
+
+        console.log("📅 updateLastCheckedTime called with:", {
+          timestamp,
+          detectionType,
+        });
+
+        if (!timestamp) {
+          console.warn("⚠️ No timestamp provided, showing 'Never'");
+          lastCheckedDiv.textContent = "Last check: Never";
+          return;
+        }
+
+        const time = new Date(timestamp);
+
+        // Check if timestamp is valid
+        if (isNaN(time.getTime())) {
+          console.warn("⚠️ Invalid timestamp:", timestamp);
+          lastCheckedDiv.textContent = "Last check: Never (invalid timestamp)";
+          return;
+        }
+
+        const now = new Date();
+        const diffMs = now - time;
+        const diffMins = Math.floor(diffMs / 60000);
+
+        console.log("⏰ Time diff:", { diffMs, diffMins });
+
+        let timeAgo = "";
+        if (diffMins < 1) {
+          timeAgo = "just now";
+        } else if (diffMins === 1) {
+          timeAgo = "1 min ago";
+        } else if (diffMins < 60) {
+          timeAgo = `${diffMins} mins ago`;
+        } else {
+          const diffHours = Math.floor(diffMins / 60);
+          timeAgo = diffHours === 1 ? "1 hour ago" : `${diffHours} hours ago`;
+        }
+
+        const typeLabel = detectionType === "manual" ? "Manual" : "Auto";
+        const typeEmoji = detectionType === "manual" ? "👆" : "🤖";
+
+        lastCheckedDiv.innerHTML = `
+          Last check: ${typeEmoji} <strong>${typeLabel}</strong> • 
+          ${time.toLocaleTimeString()} (${timeAgo})
+        `;
+
+        console.log("✅ Updated last checked:", lastCheckedDiv.innerHTML);
+      }
+
+      function toggleJaundiceAuto() {
+        // This function is now repurposed to toggle polling of server's auto-detections
+        if (isJaundiceAutoPolling) {
+          stopJaundicePolling();
+          const btn = document.getElementById("jaundiceAutoBtn");
+          btn.textContent = "▶️ Monitor";
+          btn.classList.remove("btn-danger");
+          btn.classList.add("btn-success");
+        } else {
+          startJaundicePolling();
+          const btn = document.getElementById("jaundiceAutoBtn");
+          btn.textContent = "⏹️ Stop";
+          btn.classList.remove("btn-success");
+          btn.classList.add("btn-danger");
+        }
+      }
+
+      // === TERMINAL FUNCTIONS ===
 
       // === UTILITY FUNCTIONS ===
 

@@ -31,6 +31,122 @@ import wave
 import os
 import signal
 import sys
+import paho.mqtt.client as mqtt
+import logging
+
+# ThingsBoard Configuration
+TB_HOST = "thingsboard.cloud"
+TB_PORT = 1883
+ACCESS_TOKEN = os.getenv("TB_ACCESS_TOKEN", "2ztut7be6ppooyiueorb")  # Replace with your device token
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+class ThingsBoardClient:
+    """MQTT client for ThingsBoard communication"""
+    
+    def __init__(self):
+        if not ACCESS_TOKEN:
+            logger.warning("ThingsBoard not configured")
+            self.enabled = False
+            return
+            
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
+        self.client.username_pw_set(ACCESS_TOKEN)
+        self.client.on_connect = self.on_connect
+        self.client.on_disconnect = self.on_disconnect
+        self.connected = False
+        self.enabled = True
+        self.telemetry_topic = 'v1/devices/me/telemetry'
+        
+    def on_connect(self, client, userdata, flags, rc):
+        if rc == 0:
+            logger.info("✓ Connected to ThingsBoard successfully")
+            self.connected = True
+        else:
+            logger.error(f"✗ ThingsBoard connection failed with code {rc}")
+            self.connected = False
+    
+    def on_disconnect(self, client, userdata, rc):
+        logger.warning(f"Disconnected from ThingsBoard (code: {rc})")
+        self.connected = False
+        
+    def connect(self):
+        """Connect to ThingsBoard MQTT broker"""
+        if not self.enabled:
+            return False
+            
+        try:
+            self.client.connect(TB_HOST, TB_PORT, keepalive=60)
+            self.client.loop_start()
+            
+            # Wait for connection
+            timeout = 10
+            start_time = time.time()
+            while not self.connected and (time.time() - start_time) < timeout:
+                time.sleep(0.5)
+            
+            if not self.connected:
+                raise Exception("Connection timeout")
+                
+            return True
+        except Exception as e:
+            logger.error(f"Failed to connect to ThingsBoard: {e}")
+            return False
+    
+    def disconnect(self):
+        """Disconnect from ThingsBoard"""
+        if self.enabled and self.client:
+            try:
+                self.client.loop_stop()
+                self.client.disconnect()
+                logger.info("Disconnected from ThingsBoard")
+            except Exception as e:
+                logger.error(f"Error disconnecting from ThingsBoard: {e}")
+    
+    def publish_cry_data(self, cry_status):
+        """Publish cry detection data to ThingsBoard"""
+        if not self.enabled or not self.connected:
+            return False
+        
+        try:
+            # Prepare telemetry data
+            telemetry = {
+                'cry_detected': cry_status.get('cry_detected', False),
+                'cry_audio_level': round(cry_status.get('audio_level', 0), 3),  # 3 decimal places for better precision
+                'cry_sensitivity': cry_status.get('sensitivity', 0.6),
+                'cry_total_detections': cry_status.get('total_detections', 0),
+                'cry_monitoring': cry_status.get('is_monitoring', False),
+                'timestamp': int(time.time() * 1000)
+            }
+            
+            # Add last cry time if available
+            if cry_status.get('last_cry_time'):
+                telemetry['cry_last_detected'] = cry_status['last_cry_time']
+            
+            payload = json.dumps(telemetry)
+            result = self.client.publish(self.telemetry_topic, payload, qos=1)
+            
+            if result.rc == mqtt.MQTT_ERR_SUCCESS:
+                logger.info(f"✓ Cry data published to ThingsBoard")
+                return True
+            else:
+                logger.error(f"✗ Publish failed with code {result.rc}")
+                return False
+        except Exception as e:
+            logger.error(f"Error publishing to ThingsBoard: {e}")
+            return False
+    
+    def disconnect(self):
+        """Disconnect from ThingsBoard"""
+        if self.enabled:
+            self.client.loop_stop()
+            self.client.disconnect()
+            logger.info("Disconnected from ThingsBoard")
 
 class CryDetector:
     def __init__(self, sample_rate=16000, chunk_size=1024, sensitivity=0.6):
@@ -54,6 +170,10 @@ class CryDetector:
         
         # Statistics
         self.total_detections = 0
+        
+        # ThingsBoard publishing
+        self.last_publish_time = 0
+        self.publish_interval = 30  # Publish every 30 seconds
         self.false_positives = 0
         self.monitoring_start_time = None
         
@@ -119,6 +239,12 @@ class CryDetector:
             self.p.terminate()
             
         print("⏹️ Stopped cry detection monitoring")
+        
+        # Publish monitoring stopped status to ThingsBoard
+        if tb_client and tb_client.connected:
+            status = self.get_status()
+            tb_client.publish_cry_data(status)
+            print("📡 Monitoring stopped status published to ThingsBoard")
 
     def find_audio_device(self):
         """Find a suitable audio input device"""
@@ -167,6 +293,15 @@ class CryDetector:
                         if len(audio_buffer) >= buffer_size:
                             self.analyze_audio(np.array(audio_buffer))
                 
+                # Periodic publishing to ThingsBoard
+                current_time = time.time()
+                if tb_client and tb_client.connected:
+                    if current_time - self.last_publish_time >= self.publish_interval:
+                        status = self.get_status()
+                        if tb_client.publish_cry_data(status):
+                            self.last_publish_time = current_time
+                            print(f"📡 Periodic status published to ThingsBoard")
+                
                 time.sleep(0.01)  # Small delay to prevent CPU overload
                 
             except queue.Empty:
@@ -186,11 +321,23 @@ class CryDetector:
                 self.total_detections += 1
                 print(f"👶 CRY DETECTED! (#{self.total_detections})")
                 
+                # Publish to ThingsBoard when cry is detected
+                if tb_client and tb_client.connected:
+                    status = self.get_status()
+                    tb_client.publish_cry_data(status)
+                    print("📡 Cry detection published to ThingsBoard")
+                
             elif not is_cry and self.cry_detected:
                 # Reset cry detection after 3 seconds of no crying
                 if time.time() - self.last_cry_time > 3.0:
                     self.cry_detected = False
                     print("😴 Cry stopped")
+                    
+                    # Publish status update when cry stops
+                    if tb_client and tb_client.connected:
+                        status = self.get_status()
+                        tb_client.publish_cry_data(status)
+                        print("📡 Cry stopped status published to ThingsBoard")
                     
         except Exception as e:
             print(f"❌ Analysis error: {e}")
@@ -349,18 +496,37 @@ class CryDetectionHTTPHandler(http.server.BaseHTTPRequestHandler):
 # Global cry detector instance
 cry_detector = CryDetector()
 
+# Global ThingsBoard client instance
+tb_client = None
+
 def signal_handler(sig, frame):
     """Handle Ctrl+C gracefully"""
     print("\n🛑 Shutting down cry detector...")
     cry_detector.stop_monitoring()
+    if tb_client:
+        tb_client.disconnect()
     sys.exit(0)
 
 def main():
     """Main function"""
+    global tb_client
+    
     signal.signal(signal.SIGINT, signal_handler)
     
     print("🍼 Cry Detection System Starting...")
     print("=" * 50)
+    
+    # Initialize ThingsBoard client
+    try:
+        tb_client = ThingsBoardClient()
+        if tb_client.enabled:
+            tb_client.connect()
+            print("✅ ThingsBoard connection initialized")
+        else:
+            print("⚠️ ThingsBoard integration disabled (missing credentials)")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize ThingsBoard: {e}")
+        tb_client = None
     
     # Start HTTP server
     port = 8888
@@ -374,6 +540,19 @@ def main():
         print(f"⏹️  Stop endpoint: http://localhost:{port}/cry/stop")
         print(f"🎤 Audio monitoring ready")
         print("=" * 50)
+        
+        # Auto-start monitoring on server startup
+        print("🚀 Auto-starting cry detection monitoring...")
+        if cry_detector.start_monitoring():
+            print("✅ Cry detection monitoring started automatically")
+            # Publish initial status to ThingsBoard
+            if tb_client and tb_client.connected:
+                status = cry_detector.get_status()
+                tb_client.publish_cry_data(status)
+                print("📡 Initial status published to ThingsBoard")
+        else:
+            print("⚠️ Failed to auto-start monitoring")
+        
         print("⏹️  Press Ctrl+C to stop")
         
         httpd.serve_forever()
