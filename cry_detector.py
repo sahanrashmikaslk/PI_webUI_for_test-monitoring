@@ -55,13 +55,16 @@ class ThingsBoardClient:
             self.enabled = False
             return
             
-        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, clean_session=True)
         self.client.username_pw_set(ACCESS_TOKEN)
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
         self.connected = False
         self.enabled = True
         self.telemetry_topic = 'v1/devices/me/telemetry'
+        
+        # Enable automatic reconnection
+        self.client.reconnect_delay_set(min_delay=1, max_delay=120)
         
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
@@ -130,6 +133,9 @@ class ThingsBoardClient:
             
             payload = json.dumps(telemetry)
             result = self.client.publish(self.telemetry_topic, payload, qos=1)
+            
+            # Wait for publish to complete
+            result.wait_for_publish()
             
             if result.rc == mqtt.MQTT_ERR_SUCCESS:
                 logger.info(f"✓ Cry data published to ThingsBoard")

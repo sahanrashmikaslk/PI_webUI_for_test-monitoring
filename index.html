@@ -501,6 +501,49 @@
       </div>
     </header>
 
+    <!-- Services Status Banner -->
+    <div
+      id="servicesStatusBanner"
+      style="
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0.75rem 2rem;
+        display: none;
+      "
+    >
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        "
+      >
+        <div
+          style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap"
+        >
+          <span
+            style="
+              font-weight: 600;
+              color: var(--text-muted);
+              font-size: 0.85rem;
+            "
+            >SERVICES STATUS:</span
+          >
+          <div
+            id="servicesStatusContainer"
+            style="display: flex; gap: 0.75rem; flex-wrap: wrap"
+          ></div>
+        </div>
+        <button
+          class="btn btn-secondary"
+          onclick="checkServicesHealth()"
+          style="padding: 0.4rem 0.8rem; font-size: 0.8rem"
+        >
+          🔄 Refresh
+        </button>
+      </div>
+    </div>
+
     <!-- Main Content -->
     <main class="main">
       <!-- Single Frame Layout - Everything Visible -->
@@ -934,6 +977,372 @@
               </div>
             </div>
           </div>
+
+          <!-- NTE Recommendation Section -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title" style="font-size: 1rem">
+                <div class="card-icon">🌡️</div>
+                NTE Recommendation Engine
+              </h2>
+              <div style="display: flex; align-items: center; gap: 0.5rem">
+                <button
+                  class="btn btn-primary"
+                  onclick="toggleNTEMonitoring()"
+                  id="nteBtn"
+                  style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                >
+                  ▶️ Start
+                </button>
+              </div>
+            </div>
+
+            <div style="padding: 1rem">
+              <!-- Baby Registration Form -->
+              <div id="nteRegistrationForm" style="margin-bottom: 1rem">
+                <div
+                  style="
+                    font-size: 0.85rem;
+                    font-weight: bold;
+                    margin-bottom: 0.5rem;
+                    color: var(--primary);
+                  "
+                >
+                  Register Baby
+                </div>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 0.5rem;
+                    margin-bottom: 0.5rem;
+                  "
+                >
+                  <input
+                    id="babyId"
+                    type="text"
+                    class="input"
+                    placeholder="Baby ID"
+                    style="padding: 0.4rem; font-size: 0.8rem"
+                  />
+                  <input
+                    id="babyName"
+                    type="text"
+                    class="input"
+                    placeholder="Baby Name (optional)"
+                    style="padding: 0.4rem; font-size: 0.8rem"
+                  />
+                </div>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 0.5rem;
+                    margin-bottom: 0.5rem;
+                  "
+                >
+                  <input
+                    id="birthDate"
+                    type="date"
+                    class="input"
+                    style="padding: 0.4rem; font-size: 0.8rem"
+                  />
+                  <input
+                    id="birthTime"
+                    type="time"
+                    class="input"
+                    style="padding: 0.4rem; font-size: 0.8rem"
+                  />
+                </div>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 0.5rem;
+                    margin-bottom: 0.5rem;
+                  "
+                >
+                  <input
+                    id="babyWeight"
+                    type="number"
+                    class="input"
+                    placeholder="Weight (grams)"
+                    min="500"
+                    max="5000"
+                    style="padding: 0.4rem; font-size: 0.8rem"
+                  />
+                  <button
+                    class="btn btn-success"
+                    onclick="registerBaby()"
+                    style="padding: 0.4rem; font-size: 0.8rem"
+                  >
+                    ✅ Register
+                  </button>
+                </div>
+              </div>
+
+              <!-- Baby Selection -->
+              <div style="margin-bottom: 1rem">
+                <div
+                  style="
+                    font-size: 0.85rem;
+                    font-weight: bold;
+                    margin-bottom: 0.5rem;
+                    color: var(--primary);
+                  "
+                >
+                  Active Baby
+                </div>
+                <div style="display: flex; gap: 0.5rem">
+                  <select
+                    id="activeBabySelect"
+                    class="input"
+                    style="flex: 1; padding: 0.4rem; font-size: 0.8rem"
+                    onchange="selectActiveBaby()"
+                  >
+                    <option value="">No baby selected</option>
+                  </select>
+                  <button
+                    class="btn btn-secondary"
+                    onclick="refreshBabyList()"
+                    style="padding: 0.4rem 0.6rem; font-size: 0.8rem"
+                    title="Refresh baby list"
+                  >
+                    🔄
+                  </button>
+                </div>
+              </div>
+
+              <!-- NTE Status Display -->
+              <div id="nteStatusDisplay" style="display: none">
+                <!-- Baby Info -->
+                <div
+                  style="
+                    background: var(--surface);
+                    padding: 0.8rem;
+                    border-radius: 8px;
+                    margin-bottom: 1rem;
+                  "
+                >
+                  <div
+                    style="
+                      font-size: 0.85rem;
+                      font-weight: bold;
+                      margin-bottom: 0.5rem;
+                      color: var(--primary);
+                    "
+                  >
+                    <span id="nteBabyName">Baby Info</span>
+                  </div>
+                  <div
+                    style="
+                      display: grid;
+                      grid-template-columns: 1fr 1fr;
+                      gap: 0.5rem;
+                      font-size: 0.75rem;
+                    "
+                  >
+                    <div>
+                      <span style="color: var(--text-muted)">Age:</span>
+                      <span
+                        id="nteBabyAge"
+                        style="font-weight: bold; margin-left: 0.3rem"
+                        >--</span
+                      >
+                    </div>
+                    <div>
+                      <span style="color: var(--text-muted)">Weight:</span>
+                      <span
+                        id="nteBabyWeight"
+                        style="font-weight: bold; margin-left: 0.3rem"
+                        >--</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <!-- NTE Range -->
+                <div
+                  style="
+                    background: var(--surface-light);
+                    padding: 0.8rem;
+                    border-radius: 8px;
+                    margin-bottom: 1rem;
+                    border: 2px solid var(--primary);
+                  "
+                >
+                  <div
+                    style="
+                      font-size: 0.85rem;
+                      font-weight: bold;
+                      margin-bottom: 0.5rem;
+                      color: var(--primary);
+                    "
+                  >
+                    NTE Range
+                  </div>
+                  <div
+                    id="nteRange"
+                    style="
+                      text-align: center;
+                      font-size: 1.3rem;
+                      font-weight: bold;
+                      color: var(--primary);
+                    "
+                  >
+                    --
+                  </div>
+                  <div
+                    style="
+                      font-size: 0.7rem;
+                      color: var(--text-muted);
+                      text-align: center;
+                      margin-top: 0.3rem;
+                    "
+                  >
+                    Target air temperature range
+                  </div>
+                </div>
+
+                <!-- Current Readings -->
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 0.5rem;
+                    margin-bottom: 1rem;
+                  "
+                >
+                  <div
+                    style="
+                      text-align: center;
+                      padding: 0.5rem;
+                      background: var(--surface);
+                      border-radius: 8px;
+                    "
+                  >
+                    <div
+                      style="
+                        font-size: 0.7rem;
+                        color: var(--text-muted);
+                        margin-bottom: 0.2rem;
+                      "
+                    >
+                      Air Temp
+                    </div>
+                    <div
+                      id="nteAirTemp"
+                      style="
+                        font-size: 1rem;
+                        font-weight: bold;
+                        color: var(--primary);
+                      "
+                    >
+                      28°C
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      text-align: center;
+                      padding: 0.5rem;
+                      background: var(--surface);
+                      border-radius: 8px;
+                    "
+                  >
+                    <div
+                      style="
+                        font-size: 0.7rem;
+                        color: var(--text-muted);
+                        margin-bottom: 0.2rem;
+                      "
+                    >
+                      Skin Temp
+                    </div>
+                    <div
+                      id="nteSkinTemp"
+                      style="
+                        font-size: 1rem;
+                        font-weight: bold;
+                        color: var(--primary);
+                      "
+                    >
+                      --
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      text-align: center;
+                      padding: 0.5rem;
+                      background: var(--surface);
+                      border-radius: 8px;
+                    "
+                  >
+                    <div
+                      style="
+                        font-size: 0.7rem;
+                        color: var(--text-muted);
+                        margin-bottom: 0.2rem;
+                      "
+                    >
+                      Humidity
+                    </div>
+                    <div
+                      id="nteHumidity"
+                      style="
+                        font-size: 1rem;
+                        font-weight: bold;
+                        color: var(--primary);
+                      "
+                    >
+                      --
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Advice/Recommendations -->
+                <div
+                  id="nteAdvice"
+                  style="
+                    background: var(--surface);
+                    padding: 0.8rem;
+                    border-radius: 8px;
+                    max-height: 200px;
+                    overflow-y: auto;
+                  "
+                >
+                  <div
+                    style="
+                      font-size: 0.85rem;
+                      font-weight: bold;
+                      margin-bottom: 0.5rem;
+                      color: var(--primary);
+                    "
+                  >
+                    Recommendations
+                  </div>
+                  <div
+                    id="nteAdviceList"
+                    style="font-size: 0.75rem; color: var(--text-muted)"
+                  >
+                    No recommendations yet
+                  </div>
+                </div>
+              </div>
+
+              <!-- Manual Check Button -->
+              <div style="margin-top: 1rem; text-align: center">
+                <button
+                  class="btn btn-primary"
+                  onclick="checkNTERecommendations()"
+                  id="nteCheckBtn"
+                  style="width: 100%; padding: 0.5rem; font-size: 0.9rem"
+                  disabled
+                >
+                  🔍 Check Recommendations
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Right Column: Health + Terminal -->
@@ -1049,6 +1458,45 @@
                     Power Status
                   </div>
                 </div>
+              </div>
+
+              <!-- Power Management Buttons -->
+              <div style="margin-bottom: 1rem; display: flex; gap: 0.75rem">
+                <!-- Reboot Button -->
+                <button
+                  class="btn btn-warning"
+                  onclick="rebootPi()"
+                  style="
+                    flex: 1;
+                    padding: 0.8rem;
+                    font-size: 0.9rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                  "
+                >
+                  <span style="font-size: 1.2rem">🔄</span>
+                  <span>Restart Pi</span>
+                </button>
+
+                <!-- Shutdown Button -->
+                <button
+                  class="btn btn-danger"
+                  onclick="shutdownPi()"
+                  style="
+                    flex: 1;
+                    padding: 0.8rem;
+                    font-size: 0.9rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                  "
+                >
+                  <span style="font-size: 1.2rem">🔴</span>
+                  <span>Shutdown Pi</span>
+                </button>
               </div>
 
               <!-- Debug Panel (Compact) -->
@@ -1316,11 +1764,18 @@
       const CRY_PORT = 8888;
       const LCD_PORT = 9001; // LCD reading API with annotations
       const JAUNDICE_PORT = 8887; // Jaundice detection API
+      const NTE_PORT = 8886; // NTE Recommendation Engine
 
       // Jaundice detection state
       let isJaundiceAutoPolling = false; // Auto-poll for server's 10-min detections
       let jaundicePollingInterval;
       let lastJaundiceTimestamp = null;
+
+      // NTE state
+      let isNTEMonitoring = false;
+      let nteMonitoringInterval;
+      let activeBabyId = null;
+      let activeBabyData = null;
 
       // === PI IP MANAGEMENT ===
 
@@ -1374,6 +1829,110 @@
 
         // Test new connection
         checkPiConnection();
+      }
+
+      // Services Health Monitoring
+      let servicesCheckInterval = null;
+
+      async function checkServicesHealth() {
+        try {
+          const response = await fetch(
+            `http://${PI_IP}:${HEALTH_PORT}/services`
+          );
+          if (!response.ok) {
+            throw new Error("Services check failed");
+          }
+
+          const data = await response.json();
+          displayServicesStatus(data.services);
+        } catch (error) {
+          console.error("❌ Services health check error:", error);
+          document.getElementById("servicesStatusBanner").style.display =
+            "none";
+        }
+      }
+
+      function displayServicesStatus(services) {
+        const container = document.getElementById("servicesStatusContainer");
+        const banner = document.getElementById("servicesStatusBanner");
+
+        if (!services) {
+          banner.style.display = "none";
+          return;
+        }
+
+        let hasErrors = false;
+        let statusHTML = "";
+
+        const servicesList = [
+          { key: "nte-server", label: "NTE Server", port: 8886 },
+          { key: "camera-server", label: "Camera Server", port: 8889 },
+          { key: "camera-stream-1", label: "Camera 1", port: 8080 },
+          { key: "camera-stream-2-lcd", label: "LCD Camera", port: 8081 },
+          { key: "cry-detector", label: "Cry Detector", port: 8888 },
+          { key: "jaundice-detector", label: "Jaundice", port: 8501 },
+        ];
+
+        servicesList.forEach((service) => {
+          const status = services[service.key];
+          if (!status) return;
+
+          const isRunning = status.status === "running";
+          const isError =
+            status.status === "error" || status.status === "stopped";
+
+          if (isError) hasErrors = true;
+
+          const color = isRunning
+            ? "var(--success)"
+            : status.status === "stopped"
+            ? "var(--text-muted)"
+            : "var(--danger)";
+          const icon = isRunning
+            ? "✅"
+            : status.status === "stopped"
+            ? "⭕"
+            : "❌";
+
+          statusHTML += `
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 0.4rem;
+              padding: 0.4rem 0.7rem;
+              background: var(--surface-light);
+              border-radius: 6px;
+              border-left: 3px solid ${color};
+              font-size: 0.8rem;
+            ">
+              <span>${icon}</span>
+              <span style="font-weight: 500;">${service.label}</span>
+              <span style="color: var(--text-muted); font-size: 0.75rem;">:${service.port}</span>
+            </div>
+          `;
+        });
+
+        container.innerHTML = statusHTML;
+        banner.style.display = "block";
+
+        // Show alert if there are errors
+        if (hasErrors) {
+          console.warn("⚠️ Some services are not running properly");
+        }
+      }
+
+      // Auto-check services every 10 seconds
+      function startServicesMonitoring() {
+        checkServicesHealth();
+        if (servicesCheckInterval) clearInterval(servicesCheckInterval);
+        servicesCheckInterval = setInterval(checkServicesHealth, 10000);
+      }
+
+      function stopServicesMonitoring() {
+        if (servicesCheckInterval) {
+          clearInterval(servicesCheckInterval);
+          servicesCheckInterval = null;
+        }
       }
 
       // === CONNECTION STATUS MANAGEMENT ===
@@ -1469,6 +2028,9 @@
 
         // Start connection monitoring
         startConnectionMonitoring();
+
+        // Start services health monitoring
+        startServicesMonitoring();
 
         // Start audio level monitoring
         startAudioMonitoring();
@@ -2858,6 +3420,434 @@
         document.getElementById("debugResponse").textContent = "None";
         console.clear();
       }
+
+      // === SHUTDOWN FUNCTION ===
+
+      async function shutdownPi() {
+        // Show confirmation dialog
+        const confirmed = confirm(
+          "⚠️ WARNING: This will safely shutdown the Raspberry Pi!\n\n" +
+            "The Pi will power off in 5 seconds after confirmation.\n" +
+            "You will need to physically power it back on.\n\n" +
+            "Are you sure you want to continue?"
+        );
+
+        if (!confirmed) {
+          console.log("🚫 Shutdown cancelled by user");
+          return;
+        }
+
+        const shutdownUrl = `http://${PI_IP}:${HEALTH_PORT}/shutdown`;
+
+        try {
+          console.log("🔴 Initiating Pi shutdown...");
+
+          const response = await fetch(shutdownUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          const data = await response.json();
+          console.log("✅ Shutdown response:", data);
+
+          // Show success message
+          alert(
+            "✅ Shutdown command sent successfully!\n\n" +
+              data.message +
+              "\n\n" +
+              "The dashboard will stop responding shortly."
+          );
+
+          // Optionally stop all monitoring
+          if (isHealthMonitoring) stopHealthMonitoring();
+          if (isCryDetectionActive) stopCryDetection();
+          if (isJaundiceAutoPolling) stopJaundiceAutoPolling();
+        } catch (error) {
+          console.error("❌ Shutdown request failed:", error);
+          alert(
+            "❌ Failed to send shutdown command!\n\n" +
+              "Error: " +
+              error.message +
+              "\n\n" +
+              "Please check the connection and try again."
+          );
+        }
+      }
+
+      async function rebootPi() {
+        // Show confirmation dialog
+        const confirmed = confirm(
+          "⚠️ WARNING: This will restart the Raspberry Pi!\n\n" +
+            "The Pi will reboot in 5 seconds after confirmation.\n" +
+            "It should come back online in approximately 30-60 seconds.\n\n" +
+            "Are you sure you want to continue?"
+        );
+
+        if (!confirmed) {
+          console.log("🚫 Reboot cancelled by user");
+          return;
+        }
+
+        const rebootUrl = `http://${PI_IP}:${HEALTH_PORT}/reboot`;
+
+        try {
+          console.log("🔄 Initiating Pi reboot...");
+
+          const response = await fetch(rebootUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          const data = await response.json();
+          console.log("✅ Reboot response:", data);
+
+          // Show success message
+          alert(
+            "✅ Reboot command sent successfully!\n\n" +
+              data.message +
+              "\n\n" +
+              "The Pi will restart and should be back online in ~30-60 seconds.\n" +
+              "The dashboard will temporarily stop responding."
+          );
+
+          // Optionally stop all monitoring temporarily
+          if (isHealthMonitoring) stopHealthMonitoring();
+          if (isCryDetectionActive) stopCryDetection();
+          if (isJaundiceAutoPolling) stopJaundiceAutoPolling();
+          if (isNTEMonitoring) stopNTEMonitoring();
+        } catch (error) {
+          console.error("❌ Reboot request failed:", error);
+          alert(
+            "❌ Failed to send reboot command!\n\n" +
+              "Error: " +
+              error.message +
+              "\n\n" +
+              "Please check the connection and try again."
+          );
+        }
+      }
+
+      // === NTE RECOMMENDATION ENGINE FUNCTIONS ===
+
+      async function registerBaby() {
+        const babyId = document.getElementById("babyId").value.trim();
+        const babyName = document.getElementById("babyName").value.trim();
+        const birthDate = document.getElementById("birthDate").value;
+        const birthTime = document.getElementById("birthTime").value;
+        const weight = parseInt(document.getElementById("babyWeight").value);
+
+        if (!babyId || !birthDate || !birthTime || !weight) {
+          alert(
+            "⚠️ Please fill in all required fields:\n- Baby ID\n- Birth Date\n- Birth Time\n- Weight"
+          );
+          return;
+        }
+
+        if (weight < 500 || weight > 5000) {
+          alert("⚠️ Weight must be between 500g and 5000g");
+          return;
+        }
+
+        const registrationData = {
+          baby_id: babyId,
+          birth_date: birthDate,
+          birth_time: birthTime,
+          weight_g: weight,
+          name: babyName || undefined,
+        };
+
+        try {
+          console.log("📝 Registering baby:", registrationData);
+
+          const response = await fetch(
+            `http://${PI_IP}:${NTE_PORT}/baby/register`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(registrationData),
+            }
+          );
+
+          const data = await response.json();
+
+          if (response.ok) {
+            console.log("✅ Baby registered:", data);
+            alert(
+              `✅ Baby registered successfully!\n\nBaby ID: ${babyId}\nCurrent Age: ${data.current_age_hours} hours`
+            );
+
+            // Clear form
+            document.getElementById("babyId").value = "";
+            document.getElementById("babyName").value = "";
+            document.getElementById("birthDate").value = "";
+            document.getElementById("birthTime").value = "";
+            document.getElementById("babyWeight").value = "";
+
+            // Refresh baby list
+            await refreshBabyList();
+          } else {
+            throw new Error(data.detail || "Registration failed");
+          }
+        } catch (error) {
+          console.error("❌ Baby registration failed:", error);
+          alert(`❌ Failed to register baby!\n\nError: ${error.message}`);
+        }
+      }
+
+      async function refreshBabyList() {
+        try {
+          console.log("🔄 Refreshing baby list...");
+
+          const response = await fetch(`http://${PI_IP}:${NTE_PORT}/baby/list`);
+          const data = await response.json();
+
+          const selectElement = document.getElementById("activeBabySelect");
+
+          // Clear existing options except the first
+          selectElement.innerHTML =
+            '<option value="">No baby selected</option>';
+
+          if (data.status === "success" && data.babies.length > 0) {
+            data.babies.forEach((baby) => {
+              const option = document.createElement("option");
+              option.value = baby.baby_id;
+              option.textContent = `${baby.baby_id} ${
+                baby.name ? "(" + baby.name + ")" : ""
+              } - ${baby.age_days}d, ${baby.weight_g}g`;
+              selectElement.appendChild(option);
+            });
+
+            console.log(`✅ Loaded ${data.babies.length} babies`);
+          } else {
+            console.log("ℹ️ No babies registered yet");
+          }
+        } catch (error) {
+          console.error("❌ Failed to refresh baby list:", error);
+        }
+      }
+
+      async function selectActiveBaby() {
+        const selectElement = document.getElementById("activeBabySelect");
+        const selectedBabyId = selectElement.value;
+
+        if (!selectedBabyId) {
+          activeBabyId = null;
+          activeBabyData = null;
+          document.getElementById("nteStatusDisplay").style.display = "none";
+          document.getElementById("nteCheckBtn").disabled = true;
+          return;
+        }
+
+        try {
+          console.log(`👶 Selecting baby: ${selectedBabyId}`);
+
+          const response = await fetch(
+            `http://${PI_IP}:${NTE_PORT}/baby/${selectedBabyId}`
+          );
+          const data = await response.json();
+
+          if (data.status === "success") {
+            activeBabyId = selectedBabyId;
+            activeBabyData = data.data;
+
+            // Show NTE status display
+            document.getElementById("nteStatusDisplay").style.display = "block";
+            document.getElementById("nteCheckBtn").disabled = false;
+
+            // Update baby info
+            const babyName = activeBabyData.name
+              ? `${activeBabyData.name} (${activeBabyId})`
+              : activeBabyId;
+            document.getElementById("nteBabyName").textContent = babyName;
+            document.getElementById(
+              "nteBabyAge"
+            ).textContent = `${activeBabyData.current_age_hours.toFixed(1)}h (${
+              activeBabyData.age_days
+            }d)`;
+            document.getElementById(
+              "nteBabyWeight"
+            ).textContent = `${activeBabyData.weight_g}g`;
+
+            console.log("✅ Baby selected:", activeBabyData);
+
+            // Get initial recommendations
+            await checkNTERecommendations();
+          } else {
+            throw new Error(data.detail || "Failed to get baby details");
+          }
+        } catch (error) {
+          console.error("❌ Failed to select baby:", error);
+          alert(`❌ Failed to load baby details!\n\nError: ${error.message}`);
+        }
+      }
+
+      async function checkNTERecommendations() {
+        if (!activeBabyId) {
+          alert("⚠️ Please select a baby first");
+          return;
+        }
+
+        try {
+          console.log(
+            `🔍 Checking NTE recommendations for baby: ${activeBabyId}`
+          );
+
+          const requestData = {
+            baby_id: activeBabyId,
+            air_temp: null, // Will use hardcoded 28°C from server
+            skin_temp: null, // TODO: Get from sensors
+            humidity: null, // TODO: Get from sensors
+          };
+
+          const response = await fetch(
+            `http://${PI_IP}:${NTE_PORT}/recommendations`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(requestData),
+            }
+          );
+
+          const data = await response.json();
+
+          if (data.status === "success") {
+            console.log("✅ NTE recommendations:", data.data);
+            updateNTEDisplay(data.data);
+          } else {
+            throw new Error(data.detail || "Failed to get recommendations");
+          }
+        } catch (error) {
+          console.error("❌ Failed to get NTE recommendations:", error);
+          alert(`❌ Failed to get recommendations!\n\nError: ${error.message}`);
+        }
+      }
+
+      function updateNTEDisplay(nteData) {
+        // Update NTE range
+        if (nteData.nte_range) {
+          const [min, max] = nteData.nte_range;
+          document.getElementById("nteRange").textContent = `${min.toFixed(
+            1
+          )}°C - ${max.toFixed(1)}°C`;
+        } else {
+          document.getElementById("nteRange").textContent = "Not available";
+        }
+
+        // Update air temp (hardcoded 28°C)
+        document.getElementById("nteAirTemp").textContent = "28°C";
+
+        // Update skin temp and humidity (if available)
+        document.getElementById("nteSkinTemp").textContent = "--";
+        document.getElementById("nteHumidity").textContent = "--";
+
+        // Update advice list
+        const adviceList = document.getElementById("nteAdviceList");
+        adviceList.innerHTML = "";
+
+        if (nteData.advice && nteData.advice.length > 0) {
+          nteData.advice.forEach((advice) => {
+            const adviceItem = document.createElement("div");
+            adviceItem.style.marginBottom = "0.8rem";
+            adviceItem.style.padding = "0.6rem";
+            adviceItem.style.borderRadius = "6px";
+
+            // Set background color based on severity
+            if (advice.severity === "critical") {
+              adviceItem.style.background = "rgba(239, 68, 68, 0.1)";
+              adviceItem.style.borderLeft = "3px solid var(--danger)";
+            } else if (advice.severity === "warning") {
+              adviceItem.style.background = "rgba(251, 191, 36, 0.1)";
+              adviceItem.style.borderLeft = "3px solid var(--warning)";
+            } else {
+              adviceItem.style.background = "rgba(34, 197, 94, 0.1)";
+              adviceItem.style.borderLeft = "3px solid var(--success)";
+            }
+
+            const severityIcon =
+              advice.severity === "critical"
+                ? "🚨"
+                : advice.severity === "warning"
+                ? "⚠️"
+                : "ℹ️";
+
+            adviceItem.innerHTML = `
+              <div style="font-weight: bold; margin-bottom: 0.3rem">
+                ${severityIcon} ${advice.message}
+              </div>
+              <div style="font-size: 0.7rem; color: var(--text-muted)">
+                ${advice.detail}
+              </div>
+            `;
+
+            adviceList.appendChild(adviceItem);
+          });
+        } else {
+          adviceList.innerHTML =
+            '<div style="text-align: center; color: var(--text-muted)">No recommendations available</div>';
+        }
+      }
+
+      function toggleNTEMonitoring() {
+        if (isNTEMonitoring) {
+          stopNTEMonitoring();
+        } else {
+          startNTEMonitoring();
+        }
+      }
+
+      function startNTEMonitoring() {
+        if (!activeBabyId) {
+          alert("⚠️ Please select a baby first");
+          return;
+        }
+
+        console.log("🔄 Starting NTE monitoring (60s interval)");
+        isNTEMonitoring = true;
+
+        const nteBtn = document.getElementById("nteBtn");
+        nteBtn.textContent = "⏹️ Stop";
+        nteBtn.classList.remove("btn-primary");
+        nteBtn.classList.add("btn-danger");
+
+        // Check immediately
+        checkNTERecommendations();
+
+        // Then check every 60 seconds
+        nteMonitoringInterval = setInterval(() => {
+          checkNTERecommendations();
+        }, 60000);
+      }
+
+      function stopNTEMonitoring() {
+        console.log("⏹️ NTE monitoring stopped");
+        isNTEMonitoring = false;
+
+        if (nteMonitoringInterval) {
+          clearInterval(nteMonitoringInterval);
+          nteMonitoringInterval = null;
+        }
+
+        const nteBtn = document.getElementById("nteBtn");
+        nteBtn.textContent = "▶️ Start";
+        nteBtn.classList.remove("btn-danger");
+        nteBtn.classList.add("btn-primary");
+      }
+
+      // Auto-refresh baby list on page load
+      window.addEventListener("DOMContentLoaded", () => {
+        // Delay to let other services load first
+        setTimeout(() => {
+          refreshBabyList();
+        }, 2000);
+      });
     </script>
   </body>
 </html>

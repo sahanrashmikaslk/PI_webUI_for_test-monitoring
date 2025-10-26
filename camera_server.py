@@ -174,11 +174,18 @@ class CameraManager:
         return status
     
     def start_all_cameras(self):
-        """Start all configured cameras"""
+        """Start all configured cameras in device order"""
         results = {}
-        for camera_id in self.camera_configs:
-            success, message = self.start_camera(camera_id)
-            results[camera_id] = {'success': success, 'message': message}
+        # Start cameras in order: camera2 (video0) first, then camera1 (video2)
+        # This ensures lower device numbers initialize first
+        camera_order = ['camera2', 'camera1']
+        
+        for camera_id in camera_order:
+            if camera_id in self.camera_configs:
+                success, message = self.start_camera(camera_id)
+                results[camera_id] = {'success': success, 'message': message}
+                # Add delay between camera starts to avoid device conflicts
+                time.sleep(2)
         return results
     
     def stop_all_cameras(self):
@@ -305,7 +312,7 @@ class CameraHandler(BaseHTTPRequestHandler):
 def auto_start_cameras():
     """Auto-start cameras on server startup"""
     print("🚀 Auto-starting cameras...")
-    time.sleep(3)  # Wait for system to be ready
+    time.sleep(5)  # Wait for system to be ready (increased from 3 to 5 seconds)
     
     results = camera_manager.start_all_cameras()
     

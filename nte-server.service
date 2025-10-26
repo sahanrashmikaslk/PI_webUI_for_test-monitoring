@@ -1,0 +1,18 @@
+[Unit]
+Description=NTE Recommendation Engine Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sahan
+WorkingDirectory=/home/sahan
+ExecStartPre=/bin/sleep 10
+ExecStart=/usr/bin/python3 /home/sahan/nte_server.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -25,8 +25,19 @@ class HealthHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         """Handle GET requests"""
         if self.path == '/health':
             self.send_health_response()
+        elif self.path == '/services':
+            self.send_services_status()
         elif self.path == '/':
             self.send_info_response()
+        else:
+            self.send_error(404, "Not Found")
+    
+    def do_POST(self):
+        """Handle POST requests"""
+        if self.path == '/shutdown':
+            self.handle_shutdown()
+        elif self.path == '/reboot':
+            self.handle_reboot()
         else:
             self.send_error(404, "Not Found")
     
@@ -41,6 +52,117 @@ class HealthHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+    
+    def handle_shutdown(self):
+        """Handle system shutdown request"""
+        try:
+            # Send response first
+            response_data = {
+                "status": "success",
+                "message": "Raspberry Pi will shutdown in 5 seconds",
+                "timestamp": time.time()
+            }
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.add_cors_headers()
+            self.end_headers()
+            
+            response = json.dumps(response_data, indent=2)
+            self.wfile.write(response.encode('utf-8'))
+            
+            # Schedule shutdown in a separate thread
+            def delayed_shutdown():
+                time.sleep(5)
+                subprocess.run(['sudo', 'shutdown', '-h', 'now'], check=False)
+            
+            shutdown_thread = threading.Thread(target=delayed_shutdown, daemon=True)
+            shutdown_thread.start()
+            
+        except Exception as e:
+            error_data = {
+                "status": "error",
+                "message": str(e),
+                "timestamp": time.time()
+            }
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.add_cors_headers()
+            self.end_headers()
+            response = json.dumps(error_data, indent=2)
+            self.wfile.write(response.encode('utf-8'))
+    
+    def handle_reboot(self):
+        """Handle system reboot request"""
+        try:
+            # Send response first
+            response_data = {
+                "status": "success",
+                "message": "Raspberry Pi will reboot in 5 seconds",
+                "timestamp": time.time()
+            }
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.add_cors_headers()
+            self.end_headers()
+            
+            response = json.dumps(response_data, indent=2)
+            self.wfile.write(response.encode('utf-8'))
+            
+            # Schedule reboot in a separate thread
+            def delayed_reboot():
+                time.sleep(5)
+                subprocess.run(['sudo', 'reboot'], check=False)
+            
+            reboot_thread = threading.Thread(target=delayed_reboot, daemon=True)
+            reboot_thread.start()
+            
+        except Exception as e:
+            error_data = {
+                "status": "error",
+                "message": str(e),
+                "timestamp": time.time()
+            }
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.add_cors_headers()
+            self.end_headers()
+            response = json.dumps(error_data, indent=2)
+            self.wfile.write(response.encode('utf-8'))
+    
+    def send_services_status(self):
+        """Send services status by calling the health check script"""
+        try:
+            # Run the health check script
+            result = subprocess.run(
+                ['/usr/local/bin/check_services_health.sh'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            if result.returncode == 0:
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.add_cors_headers()
+                self.end_headers()
+                self.wfile.write(result.stdout.encode('utf-8'))
+            else:
+                raise Exception("Health check script failed")
+                
+        except Exception as e:
+            error_data = {
+                "status": "error",
+                "message": f"Failed to check services: {str(e)}",
+                "timestamp": time.time()
+            }
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.add_cors_headers()
+            self.end_headers()
+            response = json.dumps(error_data, indent=2)
+            self.wfile.write(response.encode('utf-8'))
     
     def send_health_response(self):
         """Send health data as JSON response"""
