@@ -501,49 +501,6 @@
       </div>
     </header>
 
-    <!-- Services Status Banner -->
-    <div
-      id="servicesStatusBanner"
-      style="
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
-        padding: 0.75rem 2rem;
-        display: none;
-      "
-    >
-      <div
-        style="
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        "
-      >
-        <div
-          style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap"
-        >
-          <span
-            style="
-              font-weight: 600;
-              color: var(--text-muted);
-              font-size: 0.85rem;
-            "
-            >SERVICES STATUS:</span
-          >
-          <div
-            id="servicesStatusContainer"
-            style="display: flex; gap: 0.75rem; flex-wrap: wrap"
-          ></div>
-        </div>
-        <button
-          class="btn btn-secondary"
-          onclick="checkServicesHealth()"
-          style="padding: 0.4rem 0.8rem; font-size: 0.8rem"
-        >
-          🔄 Refresh
-        </button>
-      </div>
-    </div>
-
     <!-- Main Content -->
     <main class="main">
       <!-- Single Frame Layout - Everything Visible -->
@@ -558,7 +515,7 @@
         <!-- Left Column: Cameras + Audio -->
         <div style="display: flex; flex-direction: column; gap: 1rem">
           <!-- Camera Section -->
-          <div class="card" style="flex: 0 0 auto; max-height: 420px">
+          <div class="card" style="flex: 1">
             <div class="card-header">
               <h2 class="card-title">
                 <div class="card-icon">📹</div>
@@ -652,6 +609,49 @@
                   </div>
                 </div>
 
+                <!-- Annotated Stream Window (below raw camera)
+                <div
+                  style="
+                    margin-top: 0.5rem;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    background: #000;
+                  "
+                >
+                  <iframe
+                    id="lcdAnnotatedStream"
+                    alt="LCD with Annotations"
+                    style="
+                      display: none;
+                      width: 100%;
+                      height: 360px;
+                      border: none;
+                      background: #000;
+                    "
+                    allowfullscreen
+                  ></iframe>
+                  <div
+                    id="annotatedOverlay"
+                    style="
+                      display: flex;
+                      flex-direction: column;
+                      justify-content: center;
+                      align-items: center;
+                      padding: 1rem;
+                      color: var(--text-muted);
+                      font-size: 0.75rem;
+                      min-height: 100px;
+                      background: var(--surface);
+                    "
+                  >
+                    <div>📊</div>
+                    <div style="margin-top: 0.3rem">Annotated View</div>
+                    <div style="margin-top: 0.3rem; font-size: 0.65rem">
+                      Port: 9001
+                    </div>
+                  </div>
+                </div> -->
+
                 <div class="camera-controls" style="margin-top: 0.5rem">
                   <input
                     id="port2"
@@ -687,662 +687,244 @@
             </div>
           </div>
 
-          <!-- Jaundice Detection & Audio Monitoring Row -->
-          <div
-            style="
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 1rem;
-              flex: 0 0 auto;
-            "
-          >
-            <!-- Jaundice Detection Section -->
-            <div class="card">
-              <div class="card-header">
-                <h2 class="card-title" style="font-size: 1rem">
-                  <div class="card-icon">🩺</div>
-                  Jaundice Detection
-                </h2>
+          <!-- Jaundice Detection Section -->
+          <div class="card" style="flex: 0 0 auto">
+            <div class="card-header">
+              <h2 class="card-title" style="font-size: 1rem">
+                <div class="card-icon">🩺</div>
+                Jaundice Detection
+              </h2>
+            </div>
+
+            <div style="padding: 1rem">
+              <!-- Jaundice Status -->
+              <div style="margin-bottom: 1rem">
+                <div
+                  id="jaundiceStatus"
+                  class="cry-status normal"
+                  style="font-size: 1.1rem; margin-bottom: 0.5rem; text-align: center"
+                >
+                  No Detection
+                </div>
+                <div
+                  id="jaundiceDetails"
+                  style="font-size: 0.85rem; color: var(--text-muted); text-align: center"
+                >
+                  Click "Detect Now" to analyze
+                </div>
               </div>
 
-              <div style="padding: 1rem">
-                <!-- Jaundice Status -->
-                <div style="margin-bottom: 1rem">
-                  <div
-                    id="jaundiceStatus"
-                    class="cry-status normal"
-                    style="
-                      font-size: 1.1rem;
-                      margin-bottom: 0.5rem;
-                      text-align: center;
-                    "
-                  >
-                    No Detection
-                  </div>
-                  <div
-                    id="jaundiceDetails"
-                    style="
-                      font-size: 0.85rem;
-                      color: var(--text-muted);
-                      text-align: center;
-                    "
-                  >
-                    Click "Detect Now" to analyze
-                  </div>
+              <!-- Detection Info Grid -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem">
+                <div style="text-align: center; padding: 0.5rem; background: var(--surface); border-radius: 8px">
+                  <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.2rem">Confidence</div>
+                  <div id="jaundiceConfidence" style="font-size: 1rem; font-weight: bold; color: var(--primary)">--</div>
+                </div>
+                <div style="text-align: center; padding: 0.5rem; background: var(--surface); border-radius: 8px">
+                  <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.2rem">Brightness</div>
+                  <div id="jaundiceBrightness" style="font-size: 1rem; font-weight: bold; color: var(--primary)">--</div>
+                </div>
+              </div>
+
+              <!-- Control Buttons -->
+              <div style="display: flex; gap: 0.5rem; justify-content: center">
+                <button
+                  class="btn btn-primary"
+                  onclick="detectJaundice()"
+                  style="padding: 0.4rem 0.8rem; font-size: 0.85rem"
+                  title="Analyze current frame from infant camera"
+                >
+                  🔍 Detect Now
+                </button>
+                <button
+                  class="btn btn-success"
+                  id="jaundiceAutoBtn"
+                  onclick="toggleJaundiceAuto()"
+                  style="padding: 0.4rem 0.8rem; font-size: 0.85rem"
+                  title="Auto-detect every 30 seconds"
+                >
+                  ▶️ Auto (30s)
+                </button>
+              </div>
+
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.8rem; text-align: center">
+                Analyzes infant camera stream for jaundice
+              </div>
+            </div>
+          </div>
+          <!-- Audio Monitoring Section -->
+          <div class="card" style="flex: 0 0 auto">
+            <div class="card-header">
+              <h2 class="card-title" style="font-size: 1rem">
+                <div class="card-icon">🎤</div>
+                Audio & Cry Detection
+              </h2>
+            </div>
+
+            <div
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+                padding: 1rem;
+              "
+            >
+              <!-- Cry Detection -->
+              <div class="cry-detector" style="padding: 0.8rem">
+                <div
+                  class="cry-status normal"
+                  id="cryStatus"
+                  style="font-size: 1rem; margin-bottom: 0.3rem"
+                >
+                  Normal
                 </div>
 
-                <!-- Detection Info Grid -->
-                <div
-                  style="
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 0.5rem;
-                    margin-bottom: 0.5rem;
-                  "
-                >
+                <!-- Audio Level Display -->
+                <div style="margin-bottom: 0.5rem">
                   <div
                     style="
-                      text-align: center;
-                      padding: 0.5rem;
-                      background: var(--surface);
-                      border-radius: 8px;
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      margin-bottom: 0.2rem;
                     "
                   >
-                    <div
-                      style="
-                        font-size: 0.7rem;
-                        color: var(--text-muted);
-                        margin-bottom: 0.2rem;
-                      "
+                    <span style="font-size: 0.75rem; color: var(--text-muted)"
+                      >Audio Level:</span
                     >
-                      Confidence
-                    </div>
-                    <div
-                      id="jaundiceConfidence"
+                    <span
+                      id="audioLevel"
                       style="
-                        font-size: 1rem;
-                        font-weight: bold;
+                        font-size: 0.75rem;
                         color: var(--primary);
+                        font-weight: bold;
                       "
+                      >--</span
                     >
-                      --
-                    </div>
                   </div>
                   <div
+                    class="progress-bar"
                     style="
-                      text-align: center;
-                      padding: 0.5rem;
+                      height: 6px;
                       background: var(--surface);
-                      border-radius: 8px;
+                      border-radius: 3px;
+                      overflow: hidden;
                     "
                   >
                     <div
+                      id="audioProgress"
+                      class="progress-fill"
                       style="
-                        font-size: 0.7rem;
-                        color: var(--text-muted);
-                        margin-bottom: 0.2rem;
+                        width: 0%;
+                        height: 100%;
+                        background: linear-gradient(
+                          90deg,
+                          var(--success),
+                          var(--warning),
+                          var(--danger)
+                        );
+                        transition: width 0.1s ease;
                       "
-                    >
-                      Brightness
-                    </div>
-                    <div
-                      id="jaundiceBrightness"
-                      style="
-                        font-size: 1rem;
-                        font-weight: bold;
-                        color: var(--primary);
-                      "
-                    >
-                      --
-                    </div>
+                    ></div>
                   </div>
-                </div>
-
-                <!-- Last Checked Time -->
-                <div
-                  id="jaundiceLastChecked"
-                  style="
-                    font-size: 0.7rem;
-                    color: var(--text-muted);
-                    text-align: center;
-                    padding: 0.4rem;
-                    background: var(--surface);
-                    border-radius: 6px;
-                    margin-bottom: 1rem;
-                  "
-                >
-                  Last check: Never
-                </div>
-
-                <!-- Control Buttons -->
-                <div
-                  style="display: flex; gap: 0.5rem; justify-content: center"
-                >
-                  <button
-                    class="btn btn-primary"
-                    onclick="detectJaundice()"
-                    style="padding: 0.4rem 0.8rem; font-size: 0.85rem"
-                    title="Analyze current frame from infant camera"
-                  >
-                    🔍 Detect Now
-                  </button>
-                  <button
-                    class="btn btn-success"
-                    id="jaundiceAutoBtn"
-                    onclick="toggleJaundiceAuto()"
-                    style="padding: 0.4rem 0.8rem; font-size: 0.85rem"
-                    title="Monitor server's automatic detections (every 10 min)"
-                  >
-                    ⏹️ Stop
-                  </button>
                 </div>
 
                 <div
                   style="
                     font-size: 0.75rem;
                     color: var(--text-muted);
-                    margin-top: 0.8rem;
-                    text-align: center;
+                    margin-bottom: 0.8rem;
                   "
                 >
-                  Auto-detects every 10 min • Publishes to ThingsBoard
+                  Real-time Cry Detection
                 </div>
-              </div>
-            </div>
-
-            <!-- Audio Monitoring Section -->
-            <div class="card">
-              <div class="card-header">
-                <h2 class="card-title" style="font-size: 1rem">
-                  <div class="card-icon">🎤</div>
-                  Audio & Cry Detection
-                </h2>
-              </div>
-
-              <div style="padding: 1rem">
-                <!-- Cry Detection -->
                 <div
-                  class="cry-detector"
-                  style="padding: 0.8rem; margin-bottom: 1rem"
+                  style="
+                    display: flex;
+                    gap: 0.4rem;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                  "
                 >
-                  <div
-                    class="cry-status normal"
-                    id="cryStatus"
-                    style="font-size: 1rem; margin-bottom: 0.3rem"
+                  <button
+                    class="btn btn-primary"
+                    onclick="startPyCryMonitoring()"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                    title="Start Python cry monitoring service on Pi"
                   >
-                    Normal
-                  </div>
-
-                  <!-- Audio Level Display -->
-                  <div style="margin-bottom: 0.5rem">
-                    <div
-                      style="
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-bottom: 0.2rem;
-                      "
-                    >
-                      <span style="font-size: 0.75rem; color: var(--text-muted)"
-                        >Audio Level:</span
-                      >
-                      <span
-                        id="audioLevel"
-                        style="
-                          font-size: 0.75rem;
-                          color: var(--primary);
-                          font-weight: bold;
-                        "
-                        >--</span
-                      >
-                    </div>
-                    <div
-                      class="progress-bar"
-                      style="
-                        height: 6px;
-                        background: var(--surface);
-                        border-radius: 3px;
-                        overflow: hidden;
-                      "
-                    >
-                      <div
-                        id="audioProgress"
-                        class="progress-fill"
-                        style="
-                          width: 0%;
-                          height: 100%;
-                          background: linear-gradient(
-                            90deg,
-                            var(--success),
-                            var(--warning),
-                            var(--danger)
-                          );
-                          transition: width 0.1s ease;
-                        "
-                      ></div>
-                    </div>
-                  </div>
-
-                  <div
-                    style="
-                      font-size: 0.75rem;
-                      color: var(--text-muted);
-                      margin-bottom: 0.8rem;
-                    "
-                  >
-                    Real-time Cry Detection
-                  </div>
-                  <div
-                    style="
-                      display: flex;
-                      gap: 0.4rem;
-                      justify-content: center;
-                      flex-wrap: wrap;
-                    "
-                  >
-                    <button
-                      class="btn btn-primary"
-                      onclick="startPyCryMonitoring()"
-                      style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                      title="Start Python cry monitoring service on Pi"
-                    >
-                      🚀 Start Service
-                    </button>
-                    <button
-                      class="btn btn-success"
-                      onclick="startCryDetection()"
-                      style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                      title="Start dashboard cry detection monitoring"
-                    >
-                      🎧 Monitor
-                    </button>
-                    <button
-                      class="btn btn-secondary"
-                      onclick="stopCryDetection()"
-                      style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                      title="Stop dashboard monitoring"
-                    >
-                      ⏹️ Stop
-                    </button>
-                    <button
-                      class="btn btn-secondary"
-                      onclick="stopPyCryMonitoring()"
-                      style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                      title="Stop Python service on Pi"
-                    >
-                      🛑 Stop Service
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- NTE Recommendation Section -->
-          <div class="card">
-            <div class="card-header">
-              <h2 class="card-title" style="font-size: 1rem">
-                <div class="card-icon">🌡️</div>
-                NTE Recommendation Engine
-              </h2>
-              <div style="display: flex; align-items: center; gap: 0.5rem">
-                <button
-                  class="btn btn-primary"
-                  onclick="toggleNTEMonitoring()"
-                  id="nteBtn"
-                  style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
-                >
-                  ▶️ Start
-                </button>
-              </div>
-            </div>
-
-            <div style="padding: 1rem">
-              <!-- Baby Registration Form -->
-              <div id="nteRegistrationForm" style="margin-bottom: 1rem">
-                <div
-                  style="
-                    font-size: 0.85rem;
-                    font-weight: bold;
-                    margin-bottom: 0.5rem;
-                    color: var(--primary);
-                  "
-                >
-                  Register Baby
-                </div>
-                <div
-                  style="
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 0.5rem;
-                    margin-bottom: 0.5rem;
-                  "
-                >
-                  <input
-                    id="babyId"
-                    type="text"
-                    class="input"
-                    placeholder="Baby ID"
-                    style="padding: 0.4rem; font-size: 0.8rem"
-                  />
-                  <input
-                    id="babyName"
-                    type="text"
-                    class="input"
-                    placeholder="Baby Name (optional)"
-                    style="padding: 0.4rem; font-size: 0.8rem"
-                  />
-                </div>
-                <div
-                  style="
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 0.5rem;
-                    margin-bottom: 0.5rem;
-                  "
-                >
-                  <input
-                    id="birthDate"
-                    type="date"
-                    class="input"
-                    style="padding: 0.4rem; font-size: 0.8rem"
-                  />
-                  <input
-                    id="birthTime"
-                    type="time"
-                    class="input"
-                    style="padding: 0.4rem; font-size: 0.8rem"
-                  />
-                </div>
-                <div
-                  style="
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 0.5rem;
-                    margin-bottom: 0.5rem;
-                  "
-                >
-                  <input
-                    id="babyWeight"
-                    type="number"
-                    class="input"
-                    placeholder="Weight (grams)"
-                    min="500"
-                    max="5000"
-                    style="padding: 0.4rem; font-size: 0.8rem"
-                  />
+                    🚀 Start Service
+                  </button>
                   <button
                     class="btn btn-success"
-                    onclick="registerBaby()"
-                    style="padding: 0.4rem; font-size: 0.8rem"
+                    onclick="startCryDetection()"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                    title="Start dashboard cry detection monitoring"
                   >
-                    ✅ Register
+                    🎧 Monitor
                   </button>
-                </div>
-              </div>
-
-              <!-- Baby Selection -->
-              <div style="margin-bottom: 1rem">
-                <div
-                  style="
-                    font-size: 0.85rem;
-                    font-weight: bold;
-                    margin-bottom: 0.5rem;
-                    color: var(--primary);
-                  "
-                >
-                  Active Baby
-                </div>
-                <div style="display: flex; gap: 0.5rem">
-                  <select
-                    id="activeBabySelect"
-                    class="input"
-                    style="flex: 1; padding: 0.4rem; font-size: 0.8rem"
-                    onchange="selectActiveBaby()"
-                  >
-                    <option value="">No baby selected</option>
-                  </select>
                   <button
                     class="btn btn-secondary"
-                    onclick="refreshBabyList()"
-                    style="padding: 0.4rem 0.6rem; font-size: 0.8rem"
-                    title="Refresh baby list"
+                    onclick="stopCryDetection()"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                    title="Stop dashboard monitoring"
                   >
-                    🔄
+                    ⏹️ Stop
+                  </button>
+                  <button
+                    class="btn btn-secondary"
+                    onclick="stopPyCryMonitoring()"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                    title="Stop Python service on Pi"
+                  >
+                    🛑 Stop Service
                   </button>
                 </div>
               </div>
 
-              <!-- NTE Status Display -->
-              <div id="nteStatusDisplay" style="display: none">
-                <!-- Baby Info -->
-                <div
-                  style="
-                    background: var(--surface);
-                    padding: 0.8rem;
-                    border-radius: 8px;
-                    margin-bottom: 1rem;
-                  "
-                >
-                  <div
+              <!-- Audio Player -->
+              <div>
+                <div style="margin-bottom: 0.5rem">
+                  <h4
                     style="
-                      font-size: 0.85rem;
-                      font-weight: bold;
-                      margin-bottom: 0.5rem;
-                      color: var(--primary);
+                      font-size: 0.9rem;
+                      margin-bottom: 0.3rem;
+                      color: var(--text);
                     "
                   >
-                    <span id="nteBabyName">Baby Info</span>
-                  </div>
-                  <div
-                    style="
-                      display: grid;
-                      grid-template-columns: 1fr 1fr;
-                      gap: 0.5rem;
-                      font-size: 0.75rem;
-                    "
+                    Audio Stream
+                  </h4>
+                  <audio
+                    id="audioPlayer"
+                    class="audio-player"
+                    controls
+                    preload="none"
+                    style="width: 100%; height: 35px"
                   >
-                    <div>
-                      <span style="color: var(--text-muted)">Age:</span>
-                      <span
-                        id="nteBabyAge"
-                        style="font-weight: bold; margin-left: 0.3rem"
-                        >--</span
-                      >
-                    </div>
-                    <div>
-                      <span style="color: var(--text-muted)">Weight:</span>
-                      <span
-                        id="nteBabyWeight"
-                        style="font-weight: bold; margin-left: 0.3rem"
-                        >--</span
-                      >
-                    </div>
-                  </div>
+                    Your browser does not support the audio element.
+                  </audio>
                 </div>
-
-                <!-- NTE Range -->
                 <div
-                  style="
-                    background: var(--surface-light);
-                    padding: 0.8rem;
-                    border-radius: 8px;
-                    margin-bottom: 1rem;
-                    border: 2px solid var(--primary);
-                  "
+                  style="display: flex; gap: 0.4rem; justify-content: center"
                 >
-                  <div
-                    style="
-                      font-size: 0.85rem;
-                      font-weight: bold;
-                      margin-bottom: 0.5rem;
-                      color: var(--primary);
-                    "
+                  <button
+                    class="btn"
+                    onclick="playAudioStream()"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
                   >
-                    NTE Range
-                  </div>
-                  <div
-                    id="nteRange"
-                    style="
-                      text-align: center;
-                      font-size: 1.3rem;
-                      font-weight: bold;
-                      color: var(--primary);
-                    "
+                    ▶️ Play
+                  </button>
+                  <button
+                    class="btn btn-secondary"
+                    onclick="stopAudioStream()"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
                   >
-                    --
-                  </div>
-                  <div
-                    style="
-                      font-size: 0.7rem;
-                      color: var(--text-muted);
-                      text-align: center;
-                      margin-top: 0.3rem;
-                    "
-                  >
-                    Target air temperature range
-                  </div>
+                    ⏹️ Stop
+                  </button>
                 </div>
-
-                <!-- Current Readings -->
-                <div
-                  style="
-                    display: grid;
-                    grid-template-columns: 1fr 1fr 1fr;
-                    gap: 0.5rem;
-                    margin-bottom: 1rem;
-                  "
-                >
-                  <div
-                    style="
-                      text-align: center;
-                      padding: 0.5rem;
-                      background: var(--surface);
-                      border-radius: 8px;
-                    "
-                  >
-                    <div
-                      style="
-                        font-size: 0.7rem;
-                        color: var(--text-muted);
-                        margin-bottom: 0.2rem;
-                      "
-                    >
-                      Air Temp
-                    </div>
-                    <div
-                      id="nteAirTemp"
-                      style="
-                        font-size: 1rem;
-                        font-weight: bold;
-                        color: var(--primary);
-                      "
-                    >
-                      28°C
-                    </div>
-                  </div>
-                  <div
-                    style="
-                      text-align: center;
-                      padding: 0.5rem;
-                      background: var(--surface);
-                      border-radius: 8px;
-                    "
-                  >
-                    <div
-                      style="
-                        font-size: 0.7rem;
-                        color: var(--text-muted);
-                        margin-bottom: 0.2rem;
-                      "
-                    >
-                      Skin Temp
-                    </div>
-                    <div
-                      id="nteSkinTemp"
-                      style="
-                        font-size: 1rem;
-                        font-weight: bold;
-                        color: var(--primary);
-                      "
-                    >
-                      --
-                    </div>
-                  </div>
-                  <div
-                    style="
-                      text-align: center;
-                      padding: 0.5rem;
-                      background: var(--surface);
-                      border-radius: 8px;
-                    "
-                  >
-                    <div
-                      style="
-                        font-size: 0.7rem;
-                        color: var(--text-muted);
-                        margin-bottom: 0.2rem;
-                      "
-                    >
-                      Humidity
-                    </div>
-                    <div
-                      id="nteHumidity"
-                      style="
-                        font-size: 1rem;
-                        font-weight: bold;
-                        color: var(--primary);
-                      "
-                    >
-                      --
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Advice/Recommendations -->
-                <div
-                  id="nteAdvice"
-                  style="
-                    background: var(--surface);
-                    padding: 0.8rem;
-                    border-radius: 8px;
-                    max-height: 200px;
-                    overflow-y: auto;
-                  "
-                >
-                  <div
-                    style="
-                      font-size: 0.85rem;
-                      font-weight: bold;
-                      margin-bottom: 0.5rem;
-                      color: var(--primary);
-                    "
-                  >
-                    Recommendations
-                  </div>
-                  <div
-                    id="nteAdviceList"
-                    style="font-size: 0.75rem; color: var(--text-muted)"
-                  >
-                    No recommendations yet
-                  </div>
-                </div>
-              </div>
-
-              <!-- Manual Check Button -->
-              <div style="margin-top: 1rem; text-align: center">
-                <button
-                  class="btn btn-primary"
-                  onclick="checkNTERecommendations()"
-                  id="nteCheckBtn"
-                  style="width: 100%; padding: 0.5rem; font-size: 0.9rem"
-                  disabled
-                >
-                  🔍 Check Recommendations
-                </button>
               </div>
             </div>
           </div>
+
         </div>
 
         <!-- Right Column: Health + Terminal -->
@@ -1458,45 +1040,6 @@
                     Power Status
                   </div>
                 </div>
-              </div>
-
-              <!-- Power Management Buttons -->
-              <div style="margin-bottom: 1rem; display: flex; gap: 0.75rem">
-                <!-- Reboot Button -->
-                <button
-                  class="btn btn-warning"
-                  onclick="rebootPi()"
-                  style="
-                    flex: 1;
-                    padding: 0.8rem;
-                    font-size: 0.9rem;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0.5rem;
-                  "
-                >
-                  <span style="font-size: 1.2rem">🔄</span>
-                  <span>Restart Pi</span>
-                </button>
-
-                <!-- Shutdown Button -->
-                <button
-                  class="btn btn-danger"
-                  onclick="shutdownPi()"
-                  style="
-                    flex: 1;
-                    padding: 0.8rem;
-                    font-size: 0.9rem;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0.5rem;
-                  "
-                >
-                  <span style="font-size: 1.2rem">🔴</span>
-                  <span>Shutdown Pi</span>
-                </button>
               </div>
 
               <!-- Debug Panel (Compact) -->
@@ -1729,30 +1272,6 @@
                     Confidence: --
                   </div>
                 </div>
-
-                <!-- Air Temperature -->
-                <div class="metric-card" style="padding: 0.8rem">
-                  <div
-                    class="metric-value"
-                    id="lcdAirTemp"
-                    style="color: #00d2d3; font-size: 1.5rem"
-                  >
-                    --
-                  </div>
-                  <div class="metric-label" style="font-size: 0.75rem">
-                    🌡️ Air Temp
-                  </div>
-                  <div
-                    id="lcdAirTempConf"
-                    style="
-                      font-size: 0.65rem;
-                      color: var(--text-muted);
-                      margin-top: 0.2rem;
-                    "
-                  >
-                    Confidence: --
-                  </div>
-                </div>
               </div>
 
               <!-- Last Update Time -->
@@ -1769,6 +1288,142 @@
               </div>
             </div>
           </div>
+
+          <!-- SSH Terminal -->
+          <div class="card" style="flex: 1">
+            <div class="card-header">
+              <h2 class="card-title" style="font-size: 1rem">
+                <div class="card-icon">💻</div>
+                SSH Terminal
+              </h2>
+              <div style="display: flex; gap: 0.5rem; align-items: center">
+                <span
+                  id="terminalStatus"
+                  style="font-size: 0.8rem; color: var(--text-muted)"
+                  >Connecting...</span
+                >
+                <button
+                  class="btn"
+                  onclick="openTerminalTab()"
+                  style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                >
+                  🔗 Open Tab
+                </button>
+                <button
+                  class="btn btn-secondary"
+                  onclick="refreshTerminal()"
+                  style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                >
+                  🔄 Refresh
+                </button>
+              </div>
+            </div>
+
+            <div class="terminal-container" style="height: calc(100% - 60px)">
+              <div class="terminal-header">
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <span
+                  style="
+                    margin-left: 1rem;
+                    font-size: 0.8rem;
+                    color: var(--text-muted);
+                  "
+                >
+                  SSH Terminal (Port 7681)
+                </span>
+              </div>
+
+              <!-- Terminal iframe with error handling -->
+              <div style="position: relative; height: calc(100% - 40px)">
+                <iframe
+                  id="terminalFrame"
+                  class="terminal-iframe"
+                  title="SSH Terminal"
+                  style="
+                    width: 100%;
+                    height: 100%;
+                    border: none;
+                    background: #1e1e1e;
+                  "
+                  onload="handleTerminalLoad()"
+                  onerror="handleTerminalError()"
+                ></iframe>
+
+                <!-- Error/Setup overlay -->
+                <div
+                  id="terminalOverlay"
+                  style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: #1e1e1e;
+                    color: #e6e8ea;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    text-align: center;
+                    padding: 2rem;
+                    display: none;
+                  "
+                >
+                  <div style="font-size: 2rem; margin-bottom: 1rem">⚠️</div>
+                  <div
+                    style="
+                      font-size: 1.1rem;
+                      margin-bottom: 1rem;
+                      color: var(--warning);
+                    "
+                  >
+                    Terminal Not Available
+                  </div>
+                  <div
+                    style="
+                      font-size: 0.9rem;
+                      color: var(--text-muted);
+                      margin-bottom: 1.5rem;
+                      line-height: 1.5;
+                    "
+                  >
+                    The SSH terminal requires ttyd to be installed and running
+                    on your Pi.
+                  </div>
+                  <div
+                    style="
+                      background: var(--surface-light);
+                      border-radius: 8px;
+                      padding: 1rem;
+                      margin-bottom: 1rem;
+                      font-family: monospace;
+                      font-size: 0.8rem;
+                      text-align: left;
+                    "
+                  >
+                    <div style="color: var(--primary); margin-bottom: 0.5rem">
+                      Setup Commands (run on Pi):
+                    </div>
+                    <div style="color: var(--text-muted)">
+                      1. sudo apt update && sudo apt install -y ttyd
+                    </div>
+                    <div style="color: var(--text-muted)">
+                      2. ttyd -p 7681 -i 0.0.0.0 --writable bash
+                    </div>
+                  </div>
+                  <button
+                    class="btn btn-primary"
+                    onclick="refreshTerminal()"
+                    style="margin-top: 0.5rem"
+                  >
+                    🔄 Try Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -1781,25 +1436,17 @@
       let cryDetectionInterval;
       let isAudioMonitoring = false;
       let audioMonitoringInterval;
+      let lastTerminalReload = 0; // Track last terminal reload time
+      let isTerminalReloading = false; // Prevent concurrent reloads
+      let terminalReloadCount = 0; // Track reload attempts
 
       // Pi configuration
       let PI_IP = "100.89.162.22"; // Pi IP - can be changed via UI
       const HEALTH_PORT = 9000;
       const CRY_PORT = 8888;
       const LCD_PORT = 9001; // LCD reading API with annotations
+      const TERMINAL_PORT = 7681;
       const JAUNDICE_PORT = 8887; // Jaundice detection API
-      const NTE_PORT = 8886; // NTE Recommendation Engine
-
-      // Jaundice detection state
-      let isJaundiceAutoPolling = false; // Auto-poll for server's 10-min detections
-      let jaundicePollingInterval;
-      let lastJaundiceTimestamp = null;
-
-      // NTE state
-      let isNTEMonitoring = false;
-      let nteMonitoringInterval;
-      let activeBabyId = null;
-      let activeBabyData = null;
 
       // === PI IP MANAGEMENT ===
 
@@ -1853,110 +1500,6 @@
 
         // Test new connection
         checkPiConnection();
-      }
-
-      // Services Health Monitoring
-      let servicesCheckInterval = null;
-
-      async function checkServicesHealth() {
-        try {
-          const response = await fetch(
-            `http://${PI_IP}:${HEALTH_PORT}/services`
-          );
-          if (!response.ok) {
-            throw new Error("Services check failed");
-          }
-
-          const data = await response.json();
-          displayServicesStatus(data.services);
-        } catch (error) {
-          console.error("❌ Services health check error:", error);
-          document.getElementById("servicesStatusBanner").style.display =
-            "none";
-        }
-      }
-
-      function displayServicesStatus(services) {
-        const container = document.getElementById("servicesStatusContainer");
-        const banner = document.getElementById("servicesStatusBanner");
-
-        if (!services) {
-          banner.style.display = "none";
-          return;
-        }
-
-        let hasErrors = false;
-        let statusHTML = "";
-
-        const servicesList = [
-          { key: "nte-server", label: "NTE Server", port: 8886 },
-          { key: "camera-server", label: "Camera Server", port: 8889 },
-          { key: "camera-stream-1", label: "Camera 1", port: 8080 },
-          { key: "camera-stream-2-lcd", label: "LCD Camera", port: 8081 },
-          { key: "cry-detector", label: "Cry Detector", port: 8888 },
-          { key: "jaundice-detector", label: "Jaundice", port: 8501 },
-        ];
-
-        servicesList.forEach((service) => {
-          const status = services[service.key];
-          if (!status) return;
-
-          const isRunning = status.status === "running";
-          const isError =
-            status.status === "error" || status.status === "stopped";
-
-          if (isError) hasErrors = true;
-
-          const color = isRunning
-            ? "var(--success)"
-            : status.status === "stopped"
-            ? "var(--text-muted)"
-            : "var(--danger)";
-          const icon = isRunning
-            ? "✅"
-            : status.status === "stopped"
-            ? "⭕"
-            : "❌";
-
-          statusHTML += `
-            <div style="
-              display: flex;
-              align-items: center;
-              gap: 0.4rem;
-              padding: 0.4rem 0.7rem;
-              background: var(--surface-light);
-              border-radius: 6px;
-              border-left: 3px solid ${color};
-              font-size: 0.8rem;
-            ">
-              <span>${icon}</span>
-              <span style="font-weight: 500;">${service.label}</span>
-              <span style="color: var(--text-muted); font-size: 0.75rem;">:${service.port}</span>
-            </div>
-          `;
-        });
-
-        container.innerHTML = statusHTML;
-        banner.style.display = "block";
-
-        // Show alert if there are errors
-        if (hasErrors) {
-          console.warn("⚠️ Some services are not running properly");
-        }
-      }
-
-      // Auto-check services every 10 seconds
-      function startServicesMonitoring() {
-        checkServicesHealth();
-        if (servicesCheckInterval) clearInterval(servicesCheckInterval);
-        servicesCheckInterval = setInterval(checkServicesHealth, 10000);
-      }
-
-      function stopServicesMonitoring() {
-        if (servicesCheckInterval) {
-          clearInterval(servicesCheckInterval);
-          servicesCheckInterval = null;
-        }
       }
 
       // === CONNECTION STATUS MANAGEMENT ===
@@ -2044,6 +1587,24 @@
         console.log("🚀 Pi Monitoring Dashboard loaded");
         console.log(`📍 Health API: http://${PI_IP}:${HEALTH_PORT}/health`);
         console.log(`🎤 Cry API: http://${PI_IP}:${CRY_PORT}/cry/status`);
+        console.log(`💻 Terminal: http://${PI_IP}:${TERMINAL_PORT}`);
+
+        // Initialize LCD annotated stream iframe (hidden by default)
+        const streamFrame = document.getElementById("lcdAnnotatedStream");
+        streamFrame.style.display = "none";
+
+        // Initialize terminal iframe
+        const terminalFrame = document.getElementById("terminalFrame");
+        terminalFrame.src = `http://${PI_IP}:${TERMINAL_PORT}`;
+
+        // Set up terminal load event listeners for persistence
+        terminalFrame.onload = function () {
+          handleTerminalLoad();
+        };
+
+        terminalFrame.onerror = function () {
+          handleTerminalError();
+        };
 
         // Update debug info
         document.getElementById(
@@ -2052,9 +1613,6 @@
 
         // Start connection monitoring
         startConnectionMonitoring();
-
-        // Start services health monitoring
-        startServicesMonitoring();
 
         // Start audio level monitoring
         startAudioMonitoring();
@@ -2074,43 +1632,6 @@
         setTimeout(() => {
           startLCDMonitoring();
         }, 1500); // Start after cameras are loaded
-
-        // Auto-start jaundice detection polling
-        console.log("🩺 Auto-starting jaundice detection polling...");
-        setTimeout(() => {
-          try {
-            console.log(
-              "⏰ Jaundice polling timeout fired, calling startJaundicePolling()"
-            );
-            startJaundicePolling();
-            // Update button state to show polling is active
-            const btn = document.getElementById("jaundiceAutoBtn");
-            if (btn) {
-              console.log("✅ Updated jaundice button state");
-              btn.textContent = "⏹️ Stop";
-              btn.classList.remove("btn-success");
-              btn.classList.add("btn-danger");
-            } else {
-              console.error("❌ Jaundice button not found!");
-            }
-          } catch (error) {
-            console.error("❌ Error starting jaundice polling:", error);
-          }
-        }, 3000); // Increased to 3 seconds to ensure page is fully loaded
-
-        // Auto-start cry detection monitoring
-        console.log("🎧 Auto-starting cry detection monitoring...");
-        setTimeout(() => {
-          try {
-            console.log(
-              "⏰ Cry detection timeout fired, calling startCryDetection()"
-            );
-            startCryDetection();
-            console.log("✅ Cry detection monitoring started");
-          } catch (error) {
-            console.error("❌ Error starting cry detection:", error);
-          }
-        }, 3500); // Start after jaundice polling
 
         // Handle page visibility changes for persistence
         document.addEventListener("visibilitychange", function () {
@@ -2781,6 +2302,30 @@
         }
       }
 
+      // === AUDIO FUNCTIONS ===
+
+      function playAudioStream() {
+        const audioPlayer = document.getElementById("audioPlayer");
+        const audioUrl = `http://${PI_IP}:8080/?action=stream`; // Adjust URL as needed
+
+        audioPlayer.src = audioUrl;
+        audioPlayer.play().catch((error) => {
+          console.error("❌ Audio play error:", error);
+          alert(
+            "Could not play audio stream. Check if audio streaming is available on the Pi."
+          );
+        });
+
+        console.log("🔊 Audio stream started");
+      }
+
+      function stopAudioStream() {
+        const audioPlayer = document.getElementById("audioPlayer");
+        audioPlayer.pause();
+        audioPlayer.src = "";
+        console.log("🔇 Audio stream stopped");
+      }
+
       // === LCD READING FUNCTIONS ===
 
       let isLCDMonitoring = false;
@@ -2792,7 +2337,6 @@
         spo2_value: null,
         skin_temp_value: null,
         humidity_value: null,
-        air_temp_value: null,
       };
 
       function toggleLCDMonitoring() {
@@ -2813,6 +2357,20 @@
 
         console.log("📊 Starting LCD reading monitoring...");
 
+        // Start annotated video stream on port 9001 (separate window below camera)
+        // Using iframe for better MJPEG stream support
+        const streamFrame = document.getElementById("lcdAnnotatedStream");
+        const annotatedOverlay = document.getElementById("annotatedOverlay");
+
+        const streamUrl = `http://${PI_IP}:${LCD_PORT}/stream`;
+        console.log(`📺 Loading annotated stream from: ${streamUrl}`);
+
+        streamFrame.src = streamUrl;
+        streamFrame.style.display = "block";
+        if (annotatedOverlay) {
+          annotatedOverlay.style.display = "none";
+        }
+
         // Fetch readings immediately
         fetchLCDReadings();
 
@@ -2831,6 +2389,15 @@
         document.getElementById("lcdBtn").textContent = "▶️ Start";
         document.getElementById("lcdBtn").classList.remove("btn-danger");
         document.getElementById("lcdBtn").classList.add("btn-success");
+
+        // Stop annotated video stream
+        const streamFrame = document.getElementById("lcdAnnotatedStream");
+        const annotatedOverlay = document.getElementById("annotatedOverlay");
+        streamFrame.src = "";
+        streamFrame.style.display = "none";
+        if (annotatedOverlay) {
+          annotatedOverlay.style.display = "flex";
+        }
 
         console.log("⏹️ LCD reading monitoring stopped");
 
@@ -2859,7 +2426,6 @@
           document.getElementById("lcdSpO2").textContent = "--";
           document.getElementById("lcdTemp").textContent = "--";
           document.getElementById("lcdHumidity").textContent = "--";
-          document.getElementById("lcdAirTemp").textContent = "--";
         }
       }
 
@@ -3057,37 +2623,6 @@
               "Not detected";
           }
 
-          // Air Temperature - use new data or keep previous
-          if (readings.air_temp_value) {
-            const airTemp = readings.air_temp_value;
-            airTemp.timestamp = timestamp;
-            previousReadings.air_temp_value = airTemp;
-
-            document.getElementById(
-              "lcdAirTemp"
-            ).textContent = `${airTemp.value}${airTemp.unit}`;
-            document.getElementById(
-              "lcdAirTempConf"
-            ).textContent = `Confidence: ${(
-              airTemp.ocr_confidence * 100
-            ).toFixed(0)}% (${timestamp.toLocaleTimeString()})`;
-          } else if (previousReadings.air_temp_value) {
-            // Use previous value
-            const airTemp = previousReadings.air_temp_value;
-            document.getElementById(
-              "lcdAirTemp"
-            ).textContent = `${airTemp.value}${airTemp.unit}`;
-            document.getElementById(
-              "lcdAirTempConf"
-            ).textContent = `Confidence: ${(
-              airTemp.ocr_confidence * 100
-            ).toFixed(0)}% (${airTemp.timestamp.toLocaleTimeString()})`;
-          } else {
-            document.getElementById("lcdAirTemp").textContent = "--";
-            document.getElementById("lcdAirTempConf").textContent =
-              "Not detected";
-          }
-
           // Update last update time
           const now = new Date();
           document.getElementById(
@@ -3167,9 +2702,9 @@
           }
 
           const data = await response.json();
-          updateJaundiceDisplay(data, "manual");
+          updateJaundiceDisplay(data);
 
-          console.log("🩺 Manual jaundice detection result:", data);
+          console.log("🩺 Jaundice detection result:", data);
         } catch (error) {
           console.error("❌ Jaundice detection error:", error);
           statusDiv.textContent = "❌ Detection Failed";
@@ -3180,126 +2715,11 @@
         }
       }
 
-      async function fetchLatestJaundiceDetection() {
-        const jaundiceUrl = `http://${PI_IP}:${JAUNDICE_PORT}/latest`;
-        console.log("🔄 Fetching jaundice data from:", jaundiceUrl);
-
-        try {
-          const response = await fetch(jaundiceUrl, {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-            },
-          });
-
-          console.log("📡 Response received, status:", response.status);
-
-          if (!response.ok) {
-            console.warn("⚠️ Jaundice API returned status:", response.status);
-            // Show error state in UI
-            updateJaundiceDisplay(null, "auto");
-            return;
-          }
-
-          const data = await response.json();
-          console.log("🩺 Fetched jaundice data:", data);
-          console.log("   - Status:", data.status);
-          console.log("   - Timestamp:", data.timestamp);
-          console.log("   - Jaundice detected:", data.jaundice_detected);
-
-          // Always update display, even if timestamp hasn't changed
-          // This ensures we see the latest status (including "no_detection")
-          if (data) {
-            // Only update lastJaundiceTimestamp if we have actual detection data
-            if (data.timestamp && data.status !== "no_detection") {
-              lastJaundiceTimestamp = data.timestamp;
-            }
-            updateJaundiceDisplay(data, "auto");
-          }
-        } catch (error) {
-          // Show error in console and UI
-          console.error(
-            "❌ Could not fetch latest jaundice detection:",
-            error.message
-          );
-          console.error("❌ Full error:", error);
-          updateJaundiceDisplay(null, "auto");
-        }
-      }
-
-      function startJaundicePolling() {
-        console.log("📞 startJaundicePolling() function called");
-        console.log("   - isJaundiceAutoPolling:", isJaundiceAutoPolling);
-
-        if (isJaundiceAutoPolling) {
-          console.log("⚠️ Polling already running, exiting");
-          return; // Already running
-        }
-
-        isJaundiceAutoPolling = true;
-        console.log("🔄 Starting jaundice detection polling (30s interval)");
-
-        // Fetch immediately
-        console.log("🚀 Calling fetchLatestJaundiceDetection() immediately");
-        fetchLatestJaundiceDetection();
-
-        // Then poll every 30 seconds
-        jaundicePollingInterval = setInterval(
-          fetchLatestJaundiceDetection,
-          30000
-        );
-        console.log("✅ Interval set, polling every 30 seconds");
-      }
-
-      function stopJaundicePolling() {
-        isJaundiceAutoPolling = false;
-        if (jaundicePollingInterval) {
-          clearInterval(jaundicePollingInterval);
-          jaundicePollingInterval = null;
-        }
-        console.log("⏹️ Jaundice detection polling stopped");
-      }
-
-      function updateJaundiceDisplay(data, detectionType = "auto") {
-        console.log("🖼️ updateJaundiceDisplay called:", {
-          data,
-          detectionType,
-        });
-
+      function updateJaundiceDisplay(data) {
         const statusDiv = document.getElementById("jaundiceStatus");
         const detailsDiv = document.getElementById("jaundiceDetails");
         const confidenceDiv = document.getElementById("jaundiceConfidence");
         const brightnessDiv = document.getElementById("jaundiceBrightness");
-        const lastCheckedDiv = document.getElementById("jaundiceLastChecked");
-
-        // Handle empty or missing data
-        if (!data) {
-          console.warn("⚠️ No data provided to updateJaundiceDisplay");
-          statusDiv.textContent = "⏳ Waiting...";
-          statusDiv.className = "cry-status normal";
-          detailsDiv.textContent =
-            "Auto-detection every 10 min. Click 'Detect Now' for instant check.";
-          confidenceDiv.textContent = "--";
-          brightnessDiv.textContent = "--";
-          lastCheckedDiv.textContent = "Last check: Never";
-          return;
-        }
-
-        // Handle no detection case (server hasn't done first detection yet)
-        if (
-          data.status === "no_detection" ||
-          data.message === "No detection data available yet"
-        ) {
-          statusDiv.textContent = "⏳ Waiting for first detection...";
-          statusDiv.className = "cry-status normal";
-          detailsDiv.textContent =
-            "Auto-detection runs every 10 min. Click 'Detect Now' for instant check.";
-          confidenceDiv.textContent = "--";
-          brightnessDiv.textContent = "--";
-          // Still show timestamp even for no_detection status
-          updateLastCheckedTime(data.timestamp, detectionType);
-          return;
-        }
 
         // Handle different status cases
         if (data.status === "too_dark") {
@@ -3308,7 +2728,6 @@
           detailsDiv.textContent = "Image is too dark for reliable detection";
           confidenceDiv.textContent = "--";
           brightnessDiv.textContent = `${Math.round(data.brightness || 0)}`;
-          updateLastCheckedTime(data.timestamp, detectionType);
           return;
         }
 
@@ -3318,47 +2737,34 @@
           detailsDiv.textContent = data.message || "Detection failed";
           confidenceDiv.textContent = "--";
           brightnessDiv.textContent = "--";
-          updateLastCheckedTime(data.timestamp, detectionType);
           return;
         }
 
-        // Success case (status === "success")
+        // Success case
         const jaundiceDetected = data.jaundice_detected === true;
         const confidence = Math.round((data.confidence || 0) * 100);
-        const probability = Math.round((data.probability || 0) * 100);
         const brightness = Math.round(data.brightness || 0);
         const reliability = data.reliability || 1.0;
 
-        // Format timestamp
-        let timeStr = "";
-        if (data.timestamp) {
-          const time = new Date(data.timestamp);
-          timeStr = time.toLocaleTimeString();
-        }
-
-        // Update status with detection type indicator
-        const typeEmoji = detectionType === "manual" ? "👆" : "🤖";
+        // Update status
         if (jaundiceDetected) {
-          statusDiv.textContent = `⚠️ Jaundice Detected ${typeEmoji}`;
+          statusDiv.textContent = "⚠️ Jaundice Detected";
           statusDiv.className = "cry-status crying";
         } else {
-          statusDiv.textContent = `✅ Normal ${typeEmoji}`;
+          statusDiv.textContent = "✅ Normal";
           statusDiv.className = "cry-status normal";
         }
 
-        // Update details with reliability warning
-        let detailText = data.predicted_class || "Unknown";
+        // Update details with reliability warning if needed
         if (reliability < 1.0) {
-          detailText += " (Low light)";
+          detailsDiv.textContent = `${data.predicted_class || "Unknown"} (Low light may affect accuracy)`;
+        } else {
+          detailsDiv.textContent = data.predicted_class || "Unknown";
         }
-        detailsDiv.textContent = detailText;
 
         // Update confidence and brightness
         confidenceDiv.textContent = `${confidence}%`;
         brightnessDiv.textContent = `${brightness}`;
-
-        // Update last checked time
-        updateLastCheckedTime(data.timestamp, detectionType);
 
         // Color code confidence
         if (confidence >= 80) {
@@ -3379,76 +2785,149 @@
         }
       }
 
-      function updateLastCheckedTime(timestamp, detectionType) {
-        const lastCheckedDiv = document.getElementById("jaundiceLastChecked");
-
-        console.log("📅 updateLastCheckedTime called with:", {
-          timestamp,
-          detectionType,
-        });
-
-        if (!timestamp) {
-          console.warn("⚠️ No timestamp provided, showing 'Never'");
-          lastCheckedDiv.textContent = "Last check: Never";
-          return;
-        }
-
-        const time = new Date(timestamp);
-
-        // Check if timestamp is valid
-        if (isNaN(time.getTime())) {
-          console.warn("⚠️ Invalid timestamp:", timestamp);
-          lastCheckedDiv.textContent = "Last check: Never (invalid timestamp)";
-          return;
-        }
-
-        const now = new Date();
-        const diffMs = now - time;
-        const diffMins = Math.floor(diffMs / 60000);
-
-        console.log("⏰ Time diff:", { diffMs, diffMins });
-
-        let timeAgo = "";
-        if (diffMins < 1) {
-          timeAgo = "just now";
-        } else if (diffMins === 1) {
-          timeAgo = "1 min ago";
-        } else if (diffMins < 60) {
-          timeAgo = `${diffMins} mins ago`;
-        } else {
-          const diffHours = Math.floor(diffMins / 60);
-          timeAgo = diffHours === 1 ? "1 hour ago" : `${diffHours} hours ago`;
-        }
-
-        const typeLabel = detectionType === "manual" ? "Manual" : "Auto";
-        const typeEmoji = detectionType === "manual" ? "👆" : "🤖";
-
-        lastCheckedDiv.innerHTML = `
-          Last check: ${typeEmoji} <strong>${typeLabel}</strong> • 
-          ${time.toLocaleTimeString()} (${timeAgo})
-        `;
-
-        console.log("✅ Updated last checked:", lastCheckedDiv.innerHTML);
-      }
-
       function toggleJaundiceAuto() {
-        // This function is now repurposed to toggle polling of server's auto-detections
-        if (isJaundiceAutoPolling) {
-          stopJaundicePolling();
-          const btn = document.getElementById("jaundiceAutoBtn");
-          btn.textContent = "▶️ Monitor";
+        const btn = document.getElementById("jaundiceAutoBtn");
+
+        if (isJaundiceAutoActive) {
+          // Stop auto detection
+          isJaundiceAutoActive = false;
+          clearInterval(jaundiceAutoInterval);
+          jaundiceAutoInterval = null;
+
+          btn.textContent = "▶️ Auto (30s)";
           btn.classList.remove("btn-danger");
           btn.classList.add("btn-success");
+
+          console.log("🩺 Auto jaundice detection stopped");
         } else {
-          startJaundicePolling();
-          const btn = document.getElementById("jaundiceAutoBtn");
-          btn.textContent = "⏹️ Stop";
+          // Start auto detection
+          isJaundiceAutoActive = true;
+
+          btn.textContent = "⏹️ Stop Auto";
           btn.classList.remove("btn-success");
           btn.classList.add("btn-danger");
+
+          console.log("🩺 Auto jaundice detection started (30s interval)");
+
+          // Run first detection immediately
+          detectJaundice();
+
+          // Then run every 30 seconds
+          jaundiceAutoInterval = setInterval(detectJaundice, 30000);
         }
       }
 
       // === TERMINAL FUNCTIONS ===
+
+      function openTerminalTab() {
+        const terminalUrl = `http://${PI_IP}:${TERMINAL_PORT}`;
+        window.open(terminalUrl, "_terminal");
+        console.log(`🔗 Opened terminal in new tab: ${terminalUrl}`);
+      }
+
+      function refreshTerminal() {
+        const now = Date.now();
+        const timeSinceLastReload = now - lastTerminalReload;
+
+        // Prevent excessive reloading - increased to 2 minutes minimum
+        if (timeSinceLastReload < 120000 || isTerminalReloading) {
+          console.log(
+            `🔄 Terminal refresh skipped - too recent (${Math.round(
+              timeSinceLastReload / 1000
+            )}s ago) or already reloading`
+          );
+          return;
+        }
+
+        // Track reload attempts
+        terminalReloadCount++;
+        if (terminalReloadCount > 3) {
+          console.log("🔄 Terminal refresh skipped - too many attempts");
+          return;
+        }
+
+        isTerminalReloading = true;
+        console.log("🔄 Refreshing terminal...");
+        const terminalFrame = document.getElementById("terminalFrame");
+        const terminalOverlay = document.getElementById("terminalOverlay");
+        const terminalStatus = document.getElementById("terminalStatus");
+
+        // Show loading state
+        terminalStatus.textContent = "Connecting...";
+        terminalStatus.style.color = "var(--warning)";
+        terminalOverlay.style.display = "none";
+
+        // Reload iframe
+        terminalFrame.src = `http://${PI_IP}:${TERMINAL_PORT}`;
+        lastTerminalReload = now;
+
+        // Set timeout to show error if doesn't load
+        setTimeout(() => {
+          isTerminalReloading = false;
+          if (terminalStatus.textContent === "Connecting...") {
+            handleTerminalError();
+          }
+        }, 8000); // Increased timeout
+      }
+
+      function handleTerminalLoad() {
+        console.log("✅ Terminal loaded successfully");
+        const terminalStatus = document.getElementById("terminalStatus");
+        const terminalOverlay = document.getElementById("terminalOverlay");
+
+        terminalStatus.textContent = "Connected";
+        terminalStatus.style.color = "var(--success)";
+        terminalOverlay.style.display = "none";
+
+        // Reset tracking variables on successful load
+        isTerminalReloading = false;
+        terminalReloadCount = 0;
+      }
+
+      function handleTerminalError() {
+        const now = Date.now();
+        const timeSinceLastReload = now - lastTerminalReload;
+
+        console.log("❌ Terminal failed to load");
+        const terminalStatus = document.getElementById("terminalStatus");
+        const terminalOverlay = document.getElementById("terminalOverlay");
+
+        terminalStatus.textContent = "Not Available";
+        terminalStatus.style.color = "var(--danger)";
+        terminalOverlay.style.display = "flex";
+
+        isTerminalReloading = false;
+
+        // DISABLED: Auto-retry to prevent popup issues
+        // Manual refresh only via button click
+        console.log(
+          "💻 Terminal auto-retry disabled - use manual refresh button"
+        );
+      }
+
+      async function checkTerminalAvailability() {
+        const terminalUrl = `http://${PI_IP}:${TERMINAL_PORT}`;
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+          const response = await fetch(terminalUrl, {
+            method: "HEAD",
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            handleTerminalLoad();
+          } else {
+            handleTerminalError();
+          }
+        } catch (error) {
+          handleTerminalError();
+        }
+      }
 
       // === UTILITY FUNCTIONS ===
 
@@ -3477,434 +2956,6 @@
         document.getElementById("debugResponse").textContent = "None";
         console.clear();
       }
-
-      // === SHUTDOWN FUNCTION ===
-
-      async function shutdownPi() {
-        // Show confirmation dialog
-        const confirmed = confirm(
-          "⚠️ WARNING: This will safely shutdown the Raspberry Pi!\n\n" +
-            "The Pi will power off in 5 seconds after confirmation.\n" +
-            "You will need to physically power it back on.\n\n" +
-            "Are you sure you want to continue?"
-        );
-
-        if (!confirmed) {
-          console.log("🚫 Shutdown cancelled by user");
-          return;
-        }
-
-        const shutdownUrl = `http://${PI_IP}:${HEALTH_PORT}/shutdown`;
-
-        try {
-          console.log("🔴 Initiating Pi shutdown...");
-
-          const response = await fetch(shutdownUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-
-          const data = await response.json();
-          console.log("✅ Shutdown response:", data);
-
-          // Show success message
-          alert(
-            "✅ Shutdown command sent successfully!\n\n" +
-              data.message +
-              "\n\n" +
-              "The dashboard will stop responding shortly."
-          );
-
-          // Optionally stop all monitoring
-          if (isHealthMonitoring) stopHealthMonitoring();
-          if (isCryDetectionActive) stopCryDetection();
-          if (isJaundiceAutoPolling) stopJaundiceAutoPolling();
-        } catch (error) {
-          console.error("❌ Shutdown request failed:", error);
-          alert(
-            "❌ Failed to send shutdown command!\n\n" +
-              "Error: " +
-              error.message +
-              "\n\n" +
-              "Please check the connection and try again."
-          );
-        }
-      }
-
-      async function rebootPi() {
-        // Show confirmation dialog
-        const confirmed = confirm(
-          "⚠️ WARNING: This will restart the Raspberry Pi!\n\n" +
-            "The Pi will reboot in 5 seconds after confirmation.\n" +
-            "It should come back online in approximately 30-60 seconds.\n\n" +
-            "Are you sure you want to continue?"
-        );
-
-        if (!confirmed) {
-          console.log("🚫 Reboot cancelled by user");
-          return;
-        }
-
-        const rebootUrl = `http://${PI_IP}:${HEALTH_PORT}/reboot`;
-
-        try {
-          console.log("🔄 Initiating Pi reboot...");
-
-          const response = await fetch(rebootUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-
-          const data = await response.json();
-          console.log("✅ Reboot response:", data);
-
-          // Show success message
-          alert(
-            "✅ Reboot command sent successfully!\n\n" +
-              data.message +
-              "\n\n" +
-              "The Pi will restart and should be back online in ~30-60 seconds.\n" +
-              "The dashboard will temporarily stop responding."
-          );
-
-          // Optionally stop all monitoring temporarily
-          if (isHealthMonitoring) stopHealthMonitoring();
-          if (isCryDetectionActive) stopCryDetection();
-          if (isJaundiceAutoPolling) stopJaundiceAutoPolling();
-          if (isNTEMonitoring) stopNTEMonitoring();
-        } catch (error) {
-          console.error("❌ Reboot request failed:", error);
-          alert(
-            "❌ Failed to send reboot command!\n\n" +
-              "Error: " +
-              error.message +
-              "\n\n" +
-              "Please check the connection and try again."
-          );
-        }
-      }
-
-      // === NTE RECOMMENDATION ENGINE FUNCTIONS ===
-
-      async function registerBaby() {
-        const babyId = document.getElementById("babyId").value.trim();
-        const babyName = document.getElementById("babyName").value.trim();
-        const birthDate = document.getElementById("birthDate").value;
-        const birthTime = document.getElementById("birthTime").value;
-        const weight = parseInt(document.getElementById("babyWeight").value);
-
-        if (!babyId || !birthDate || !birthTime || !weight) {
-          alert(
-            "⚠️ Please fill in all required fields:\n- Baby ID\n- Birth Date\n- Birth Time\n- Weight"
-          );
-          return;
-        }
-
-        if (weight < 500 || weight > 5000) {
-          alert("⚠️ Weight must be between 500g and 5000g");
-          return;
-        }
-
-        const registrationData = {
-          baby_id: babyId,
-          birth_date: birthDate,
-          birth_time: birthTime,
-          weight_g: weight,
-          name: babyName || undefined,
-        };
-
-        try {
-          console.log("📝 Registering baby:", registrationData);
-
-          const response = await fetch(
-            `http://${PI_IP}:${NTE_PORT}/baby/register`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(registrationData),
-            }
-          );
-
-          const data = await response.json();
-
-          if (response.ok) {
-            console.log("✅ Baby registered:", data);
-            alert(
-              `✅ Baby registered successfully!\n\nBaby ID: ${babyId}\nCurrent Age: ${data.current_age_hours} hours`
-            );
-
-            // Clear form
-            document.getElementById("babyId").value = "";
-            document.getElementById("babyName").value = "";
-            document.getElementById("birthDate").value = "";
-            document.getElementById("birthTime").value = "";
-            document.getElementById("babyWeight").value = "";
-
-            // Refresh baby list
-            await refreshBabyList();
-          } else {
-            throw new Error(data.detail || "Registration failed");
-          }
-        } catch (error) {
-          console.error("❌ Baby registration failed:", error);
-          alert(`❌ Failed to register baby!\n\nError: ${error.message}`);
-        }
-      }
-
-      async function refreshBabyList() {
-        try {
-          console.log("🔄 Refreshing baby list...");
-
-          const response = await fetch(`http://${PI_IP}:${NTE_PORT}/baby/list`);
-          const data = await response.json();
-
-          const selectElement = document.getElementById("activeBabySelect");
-
-          // Clear existing options except the first
-          selectElement.innerHTML =
-            '<option value="">No baby selected</option>';
-
-          if (data.status === "success" && data.babies.length > 0) {
-            data.babies.forEach((baby) => {
-              const option = document.createElement("option");
-              option.value = baby.baby_id;
-              option.textContent = `${baby.baby_id} ${
-                baby.name ? "(" + baby.name + ")" : ""
-              } - ${baby.age_days}d, ${baby.weight_g}g`;
-              selectElement.appendChild(option);
-            });
-
-            console.log(`✅ Loaded ${data.babies.length} babies`);
-          } else {
-            console.log("ℹ️ No babies registered yet");
-          }
-        } catch (error) {
-          console.error("❌ Failed to refresh baby list:", error);
-        }
-      }
-
-      async function selectActiveBaby() {
-        const selectElement = document.getElementById("activeBabySelect");
-        const selectedBabyId = selectElement.value;
-
-        if (!selectedBabyId) {
-          activeBabyId = null;
-          activeBabyData = null;
-          document.getElementById("nteStatusDisplay").style.display = "none";
-          document.getElementById("nteCheckBtn").disabled = true;
-          return;
-        }
-
-        try {
-          console.log(`👶 Selecting baby: ${selectedBabyId}`);
-
-          const response = await fetch(
-            `http://${PI_IP}:${NTE_PORT}/baby/${selectedBabyId}`
-          );
-          const data = await response.json();
-
-          if (data.status === "success") {
-            activeBabyId = selectedBabyId;
-            activeBabyData = data.data;
-
-            // Show NTE status display
-            document.getElementById("nteStatusDisplay").style.display = "block";
-            document.getElementById("nteCheckBtn").disabled = false;
-
-            // Update baby info
-            const babyName = activeBabyData.name
-              ? `${activeBabyData.name} (${activeBabyId})`
-              : activeBabyId;
-            document.getElementById("nteBabyName").textContent = babyName;
-            document.getElementById(
-              "nteBabyAge"
-            ).textContent = `${activeBabyData.current_age_hours.toFixed(1)}h (${
-              activeBabyData.age_days
-            }d)`;
-            document.getElementById(
-              "nteBabyWeight"
-            ).textContent = `${activeBabyData.weight_g}g`;
-
-            console.log("✅ Baby selected:", activeBabyData);
-
-            // Get initial recommendations
-            await checkNTERecommendations();
-          } else {
-            throw new Error(data.detail || "Failed to get baby details");
-          }
-        } catch (error) {
-          console.error("❌ Failed to select baby:", error);
-          alert(`❌ Failed to load baby details!\n\nError: ${error.message}`);
-        }
-      }
-
-      async function checkNTERecommendations() {
-        if (!activeBabyId) {
-          alert("⚠️ Please select a baby first");
-          return;
-        }
-
-        try {
-          console.log(
-            `🔍 Checking NTE recommendations for baby: ${activeBabyId}`
-          );
-
-          const requestData = {
-            baby_id: activeBabyId,
-            air_temp: null, // Will use hardcoded 28°C from server
-            skin_temp: null, // TODO: Get from sensors
-            humidity: null, // TODO: Get from sensors
-          };
-
-          const response = await fetch(
-            `http://${PI_IP}:${NTE_PORT}/recommendations`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(requestData),
-            }
-          );
-
-          const data = await response.json();
-
-          if (data.status === "success") {
-            console.log("✅ NTE recommendations:", data.data);
-            updateNTEDisplay(data.data);
-          } else {
-            throw new Error(data.detail || "Failed to get recommendations");
-          }
-        } catch (error) {
-          console.error("❌ Failed to get NTE recommendations:", error);
-          alert(`❌ Failed to get recommendations!\n\nError: ${error.message}`);
-        }
-      }
-
-      function updateNTEDisplay(nteData) {
-        // Update NTE range
-        if (nteData.nte_range) {
-          const [min, max] = nteData.nte_range;
-          document.getElementById("nteRange").textContent = `${min.toFixed(
-            1
-          )}°C - ${max.toFixed(1)}°C`;
-        } else {
-          document.getElementById("nteRange").textContent = "Not available";
-        }
-
-        // Update air temp (hardcoded 28°C)
-        document.getElementById("nteAirTemp").textContent = "28°C";
-
-        // Update skin temp and humidity (if available)
-        document.getElementById("nteSkinTemp").textContent = "--";
-        document.getElementById("nteHumidity").textContent = "--";
-
-        // Update advice list
-        const adviceList = document.getElementById("nteAdviceList");
-        adviceList.innerHTML = "";
-
-        if (nteData.advice && nteData.advice.length > 0) {
-          nteData.advice.forEach((advice) => {
-            const adviceItem = document.createElement("div");
-            adviceItem.style.marginBottom = "0.8rem";
-            adviceItem.style.padding = "0.6rem";
-            adviceItem.style.borderRadius = "6px";
-
-            // Set background color based on severity
-            if (advice.severity === "critical") {
-              adviceItem.style.background = "rgba(239, 68, 68, 0.1)";
-              adviceItem.style.borderLeft = "3px solid var(--danger)";
-            } else if (advice.severity === "warning") {
-              adviceItem.style.background = "rgba(251, 191, 36, 0.1)";
-              adviceItem.style.borderLeft = "3px solid var(--warning)";
-            } else {
-              adviceItem.style.background = "rgba(34, 197, 94, 0.1)";
-              adviceItem.style.borderLeft = "3px solid var(--success)";
-            }
-
-            const severityIcon =
-              advice.severity === "critical"
-                ? "🚨"
-                : advice.severity === "warning"
-                ? "⚠️"
-                : "ℹ️";
-
-            adviceItem.innerHTML = `
-              <div style="font-weight: bold; margin-bottom: 0.3rem">
-                ${severityIcon} ${advice.message}
-              </div>
-              <div style="font-size: 0.7rem; color: var(--text-muted)">
-                ${advice.detail}
-              </div>
-            `;
-
-            adviceList.appendChild(adviceItem);
-          });
-        } else {
-          adviceList.innerHTML =
-            '<div style="text-align: center; color: var(--text-muted)">No recommendations available</div>';
-        }
-      }
-
-      function toggleNTEMonitoring() {
-        if (isNTEMonitoring) {
-          stopNTEMonitoring();
-        } else {
-          startNTEMonitoring();
-        }
-      }
-
-      function startNTEMonitoring() {
-        if (!activeBabyId) {
-          alert("⚠️ Please select a baby first");
-          return;
-        }
-
-        console.log("🔄 Starting NTE monitoring (60s interval)");
-        isNTEMonitoring = true;
-
-        const nteBtn = document.getElementById("nteBtn");
-        nteBtn.textContent = "⏹️ Stop";
-        nteBtn.classList.remove("btn-primary");
-        nteBtn.classList.add("btn-danger");
-
-        // Check immediately
-        checkNTERecommendations();
-
-        // Then check every 60 seconds
-        nteMonitoringInterval = setInterval(() => {
-          checkNTERecommendations();
-        }, 60000);
-      }
-
-      function stopNTEMonitoring() {
-        console.log("⏹️ NTE monitoring stopped");
-        isNTEMonitoring = false;
-
-        if (nteMonitoringInterval) {
-          clearInterval(nteMonitoringInterval);
-          nteMonitoringInterval = null;
-        }
-
-        const nteBtn = document.getElementById("nteBtn");
-        nteBtn.textContent = "▶️ Start";
-        nteBtn.classList.remove("btn-danger");
-        nteBtn.classList.add("btn-primary");
-      }
-
-      // Auto-refresh baby list on page load
-      window.addEventListener("DOMContentLoaded", () => {
-        // Delay to let other services load first
-        setTimeout(() => {
-          refreshBabyList();
-        }, 2000);
-      });
     </script>
   </body>
 </html>

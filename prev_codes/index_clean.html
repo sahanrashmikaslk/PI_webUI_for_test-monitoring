@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Raspberry Pi Monitoring Dashboard</title>
+    <style>
+      :root {
+        --bg: #0a0e16;
+        --surface: #1a1e26;
+        --surface-light: #2a2e36;
+        --border: #3a3e46;
+        --text: #e6e8ea;
+        --text-muted: #9ca3af;
+        --primary: #00d4ff;
+        --primary-dark: #0094cc;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        overflow-x: hidden;
+      }
+
+      /* Header */
+      .header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .logo {
+        font-size: 2rem;
+        background: var(--gradient);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+      }
+
+      .header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: var(--surface-light);
+        border-radius: 8px;
+        font-size: 0.9rem;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--warning);
+        animation: pulse 2s infinite;
+      }
+
+      .status-dot.connected {
+        background: var(--success);
+        animation: none;
+      }
+
+      .status-dot.error {
+        background: var(--danger);
+        animation: none;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Main Layout */
+      .main {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      /* Cards */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+      }
+
+      .card:hover {
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(
+          135deg,
+          var(--surface-light),
+          var(--surface)
+        );
+      }
+
+      .card-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .card-icon {
+        font-size: 1.25rem;
+      }
+
+      /* Buttons */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface-light);
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .btn:hover {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: var(--bg);
+        transform: translateY(-1px);
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: var(--bg);
+      }
+
+      .btn-success {
+        background: var(--success);
+        border-color: var(--success);
+        color: white;
+      }
+
+      .btn-danger {
+        background: var(--danger);
+        border-color: var(--danger);
+        color: white;
+      }
+
+      .btn-secondary {
+        background: var(--surface);
+        border-color: var(--border);
+      }
+
+      /* Input */
+      .input {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--text);
+        font-size: 0.9rem;
+      }
+
+      .input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+      }
+
+      /* Camera Styles */
+      .camera-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        padding: 1.5rem;
+      }
+
+      .camera-container {
+        position: relative;
+        aspect-ratio: 16/9;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--surface-light);
+        border: 2px solid var(--border);
+        transition: border-color 0.3s ease;
+      }
+
+      .camera-container:hover {
+        border-color: var(--primary);
+      }
+
+      .camera-stream {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .camera-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: rgba(26, 30, 38, 0.9);
+        color: var(--text-muted);
+        font-size: 1rem;
+        text-align: center;
+        gap: 0.5rem;
+      }
+
+      .camera-overlay div:first-child {
+        font-size: 3rem;
+        opacity: 0.7;
+      }
+
+      .camera-controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem 0;
+        flex-wrap: wrap;
+      }
+
+      /* Health Monitoring */
+      .metric-card {
+        background: var(--surface-light);
+        border-radius: 8px;
+        text-align: center;
+        border: 1px solid var(--border);
+        transition: all 0.3s ease;
+      }
+
+      .metric-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+      }
+
+      .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+
+      .metric-label {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+
+      .progress-bar {
+        background: var(--surface);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 0.5rem;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--success));
+        transition: width 0.3s ease;
+      }
+
+      /* Cry Detection */
+      .cry-status {
+        font-size: 1.25rem;
+        font-weight: 700;
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .cry-status.normal {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        border: 1px solid var(--success);
+      }
+
+      .cry-status.crying {
+        background: rgba(239, 68, 68, 0.2);
+        color: var(--danger);
+        border: 1px solid var(--danger);
+        animation: pulse-danger 1s infinite;
+      }
+
+      .cry-status.error {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning);
+        border: 1px solid var(--warning);
+      }
+
+      @keyframes pulse-danger {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+
+      /* Audio Player */
+      .audio-player {
+        width: 100%;
+        background: var(--surface-light);
+        border-radius: 6px;
+      }
+
+      /* Terminal */
+      .terminal-container {
+        background: #1e1e1e;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+
+      .terminal-header {
+        background: #2d2d2d;
+        padding: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 1px solid #404040;
+      }
+
+      .terminal-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ff5f57;
+      }
+
+      .terminal-dot:nth-child(2) {
+        background: #ffbd2e;
+      }
+
+      .terminal-dot:nth-child(3) {
+        background: #28ca42;
+      }
+
+      .terminal-iframe {
+        width: 100%;
+        border: none;
+        background: #1e1e1e;
+      }
+
+      /* SSH Commands */
+      .command-section {
+        padding: 1rem;
+        background: var(--surface-light);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+      }
+
+      .code-block {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.75rem;
+        font-family: "Monaco", "Menlo", monospace;
+        color: var(--primary);
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .header {
+          padding: 1rem;
+        }
+
+        .main {
+          padding: 1rem;
+        }
+
+        .camera-grid {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+          padding: 1rem;
+        }
+
+        .header-content {
+          flex-direction: column;
+          gap: 1rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="header-title">
+          <div class="logo">🔬</div>
+          <h1>Raspberry Pi Monitoring Dashboard</h1>
+        </div>
+        <div class="status-indicator">
+          <div class="status-dot" id="connectionStatus"></div>
+          <span>Pi Connection</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Single Frame Layout - Everything Visible -->
+      <div
+        style="
+          display: grid;
+          grid-template-columns: 2fr 1fr;
+          gap: 1.5rem;
+          height: calc(100vh - 120px);
+        "
+      >
+        <!-- Left Column: Cameras + Audio -->
+        <div style="display: flex; flex-direction: column; gap: 1rem">
+          <!-- Camera Section -->
+          <div class="card" style="flex: 1">
+            <div class="card-header">
+              <h2 class="card-title">
+                <div class="card-icon">📹</div>
+                Live Camera Streams
+              </h2>
+              <div style="display: flex; gap: 0.5rem">
+                <button
+                  class="btn"
+                  onclick="startAllCams()"
+                  style="padding: 0.4rem 0.8rem; font-size: 0.8rem"
+                >
+                  🎬 Start All
+                </button>
+                <button
+                  class="btn btn-secondary"
+                  onclick="stopAllCams()"
+                  style="padding: 0.4rem 0.8rem; font-size: 0.8rem"
+                >
+                  ⏹️ Stop All
+                </button>
+              </div>
+            </div>
+
+            <div class="camera-grid">
+              <!-- Camera 1 -->
+              <div>
+                <div class="camera-container">
+                  <img
+                    id="cam1"
+                    class="camera-stream"
+                    alt="Camera 1 Stream"
+                    style="display: none"
+                  />
+                  <div class="camera-overlay" id="cam1Overlay">
+                    <div>📷</div>
+                    <div>Camera 1 (Infant)</div>
+                    <div style="font-size: 0.75rem; margin-top: 0.5rem">
+                      Port: <span id="port1Display">8080</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="camera-controls" style="margin-top: 0.5rem">
+                  <input
+                    id="port1"
+                    type="number"
+                    class="input"
+                    value="8080"
+                    placeholder="8080"
+                    style="width: 60px; padding: 0.3rem; font-size: 0.8rem"
+                  />
+                  <button
+                    class="btn btn-success"
+                    onclick="startCam(1)"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                  >
+                    Start
+                  </button>
+                  <button
+                    class="btn btn-secondary"
+                    onclick="stopCam(1)"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                  >
+                    Stop
+                  </button>
+                  <button
+                    class="btn btn-secondary"
+                    onclick="openCam(1)"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                  >
+                    🔗
+                  </button>
+                </div>
+              </div>
+
+              <!-- Camera 2 -->
+              <div>
+                <div class="camera-container">
+                  <img
+                    id="cam2"
+                    class="camera-stream"
+                    alt="Camera 2 Stream"
+                    style="display: none"
+                  />
+                  <div class="camera-overlay" id="cam2Overlay">
+                    <div>📷</div>
+                    <div>Camera 2 (LCD)</div>
+                    <div style="font-size: 0.75rem; margin-top: 0.5rem">
+                      Port: <span id="port2Display">8081</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="camera-controls" style="margin-top: 0.5rem">
+                  <input
+                    id="port2"
+                    type="number"
+                    class="input"
+                    value="8081"
+                    placeholder="8081"
+                    style="width: 60px; padding: 0.3rem; font-size: 0.8rem"
+                  />
+                  <button
+                    class="btn btn-success"
+                    onclick="startCam(2)"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                  >
+                    Start
+                  </button>
+                  <button
+                    class="btn btn-secondary"
+                    onclick="stopCam(2)"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                  >
+                    Stop
+                  </button>
+                  <button
+                    class="btn btn-secondary"
+                    onclick="openCam(2)"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                  >
+                    🔗
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Audio Monitoring Section -->
+          <div class="card" style="flex: 0 0 auto">
+            <div class="card-header">
+              <h2 class="card-title" style="font-size: 1rem">
+                <div class="card-icon">🎤</div>
+                Audio & Cry Detection
+              </h2>
+            </div>
+
+            <div
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+                padding: 1rem;
+              "
+            >
+              <!-- Cry Detection -->
+              <div class="cry-detector" style="padding: 0.8rem">
+                <div
+                  class="cry-status normal"
+                  id="cryStatus"
+                  style="font-size: 1rem; margin-bottom: 0.3rem"
+                >
+                  Normal
+                </div>
+                <div
+                  style="
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                    margin-bottom: 0.8rem;
+                  "
+                >
+                  Real-time Cry Detection
+                </div>
+                <div
+                  style="display: flex; gap: 0.4rem; justify-content: center"
+                >
+                  <button
+                    class="btn btn-success"
+                    onclick="startCryDetection()"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                  >
+                    🎧 Start
+                  </button>
+                  <button
+                    class="btn btn-secondary"
+                    onclick="stopCryDetection()"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                  >
+                    ⏹️ Stop
+                  </button>
+                </div>
+              </div>
+
+              <!-- Audio Player -->
+              <div>
+                <div style="margin-bottom: 0.5rem">
+                  <h4
+                    style="
+                      font-size: 0.9rem;
+                      margin-bottom: 0.3rem;
+                      color: var(--text);
+                    "
+                  >
+                    Audio Stream
+                  </h4>
+                  <audio
+                    id="audioPlayer"
+                    class="audio-player"
+                    controls
+                    preload="none"
+                    style="width: 100%; height: 35px"
+                  >
+                    Your browser does not support the audio element.
+                  </audio>
+                </div>
+                <div
+                  style="display: flex; gap: 0.4rem; justify-content: center"
+                >
+                  <button
+                    class="btn"
+                    onclick="playAudioStream()"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                  >
+                    ▶️ Play
+                  </button>
+                  <button
+                    class="btn btn-secondary"
+                    onclick="stopAudioStream()"
+                    style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                  >
+                    ⏹️ Stop
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Health + Terminal -->
+        <div style="display: flex; flex-direction: column; gap: 1rem">
+          <!-- System Health -->
+          <div class="card" style="flex: 0 0 auto">
+            <div class="card-header">
+              <h2 class="card-title" style="font-size: 1rem">
+                <div class="card-icon">💓</div>
+                System Health
+              </h2>
+              <div style="display: flex; align-items: center; gap: 0.3rem">
+                <input
+                  id="pollInterval"
+                  type="number"
+                  class="input"
+                  value="2"
+                  min="1"
+                  max="60"
+                  style="width: 45px; padding: 0.3rem; font-size: 0.8rem"
+                />
+                <span style="font-size: 0.8rem; color: var(--text-muted)"
+                  >sec</span
+                >
+                <button
+                  class="btn btn-success"
+                  onclick="toggleHealthMonitoring()"
+                  id="healthBtn"
+                  style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+                >
+                  ▶️ Start
+                </button>
+              </div>
+            </div>
+
+            <div style="padding: 1rem">
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 0.8rem;
+                  margin-bottom: 1rem;
+                "
+              >
+                <div class="metric-card" style="padding: 0.8rem">
+                  <div
+                    class="metric-value"
+                    id="cpuValue"
+                    style="color: var(--primary); font-size: 1.5rem"
+                  >
+                    --
+                  </div>
+                  <div class="metric-label" style="font-size: 0.75rem">
+                    CPU Usage
+                  </div>
+                  <div
+                    class="progress-bar"
+                    style="height: 6px; margin-top: 0.3rem"
+                  >
+                    <div
+                      class="progress-fill"
+                      id="cpuProgress"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                </div>
+
+                <div class="metric-card" style="padding: 0.8rem">
+                  <div
+                    class="metric-value"
+                    id="ramValue"
+                    style="color: var(--success); font-size: 1.5rem"
+                  >
+                    --
+                  </div>
+                  <div class="metric-label" style="font-size: 0.75rem">
+                    RAM Usage
+                  </div>
+                  <div
+                    class="progress-bar"
+                    style="height: 6px; margin-top: 0.3rem"
+                  >
+                    <div
+                      class="progress-fill"
+                      id="ramProgress"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                </div>
+
+                <div class="metric-card" style="padding: 0.8rem">
+                  <div
+                    class="metric-value"
+                    id="tempValue"
+                    style="color: var(--warning); font-size: 1.5rem"
+                  >
+                    --
+                  </div>
+                  <div class="metric-label" style="font-size: 0.75rem">
+                    Temperature
+                  </div>
+                </div>
+
+                <div class="metric-card" style="padding: 0.8rem">
+                  <div
+                    class="metric-value"
+                    id="powerValue"
+                    style="color: var(--success); font-size: 1.5rem"
+                  >
+                    --
+                  </div>
+                  <div class="metric-label" style="font-size: 0.75rem">
+                    Power Status
+                  </div>
+                </div>
+              </div>
+
+              <!-- Debug Panel (Compact) -->
+              <div
+                style="
+                  padding: 0.8rem;
+                  background: var(--surface-light);
+                  border-radius: 6px;
+                  border: 1px solid var(--border);
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 0.3rem;
+                  "
+                >
+                  <h3
+                    style="
+                      font-size: 0.8rem;
+                      color: var(--text-muted);
+                      margin: 0;
+                    "
+                  >
+                    Debug Info
+                  </h3>
+                  <button
+                    class="btn"
+                    style="padding: 0.2rem 0.4rem; font-size: 0.7rem"
+                    onclick="toggleDebugPanel()"
+                  >
+                    <span id="debugToggle">Show</span>
+                  </button>
+                </div>
+                <div id="debugPanel" style="display: none">
+                  <div
+                    style="
+                      font-size: 0.7rem;
+                      color: var(--text-muted);
+                      margin-bottom: 0.3rem;
+                    "
+                  >
+                    Health: <span id="debugUrl">--</span>
+                  </div>
+                  <div
+                    style="
+                      font-size: 0.7rem;
+                      color: var(--text-muted);
+                      margin-bottom: 0.3rem;
+                    "
+                  >
+                    Error: <span id="debugError">None</span>
+                  </div>
+                  <div
+                    style="
+                      font-size: 0.7rem;
+                      color: var(--text-muted);
+                      margin-bottom: 0.3rem;
+                    "
+                  >
+                    Response: <span id="debugResponse">None</span>
+                  </div>
+                  <div style="display: flex; gap: 0.3rem">
+                    <button
+                      class="btn btn-secondary"
+                      style="padding: 0.2rem 0.4rem; font-size: 0.7rem"
+                      onclick="testHealthAPI()"
+                    >
+                      🧪 Test
+                    </button>
+                    <button
+                      class="btn btn-secondary"
+                      style="padding: 0.2rem 0.4rem; font-size: 0.7rem"
+                      onclick="clearDebugLog()"
+                    >
+                      🗑️ Clear
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SSH Terminal -->
+          <div class="card" style="flex: 1">
+            <div class="card-header">
+              <h2 class="card-title" style="font-size: 1rem">
+                <div class="card-icon">💻</div>
+                SSH Terminal
+              </h2>
+              <button
+                class="btn"
+                onclick="openTerminalTab()"
+                style="padding: 0.3rem 0.6rem; font-size: 0.8rem"
+              >
+                🔗 Open Tab
+              </button>
+            </div>
+
+            <div class="terminal-container" style="height: calc(100% - 60px)">
+              <div class="terminal-header">
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <span
+                  style="
+                    margin-left: 1rem;
+                    font-size: 0.8rem;
+                    color: var(--text-muted);
+                  "
+                >
+                  SSH Terminal (Port 7681)
+                </span>
+              </div>
+              <iframe
+                id="terminalFrame"
+                class="terminal-iframe"
+                title="SSH Terminal"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SSH Commands Section (Below main layout) -->
+      <div class="card" style="margin-top: 1.5rem">
+        <div class="card-header">
+          <h2 class="card-title">
+            <div class="card-icon">🔧</div>
+            SSH Commands
+          </h2>
+        </div>
+
+        <div
+          style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+          "
+        >
+          <!-- Pi Connection -->
+          <div>
+            <h3
+              style="
+                color: var(--primary);
+                margin-bottom: 0.5rem;
+                font-size: 1rem;
+              "
+            >
+              Pi Connection
+            </h3>
+            <div class="command-section">
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem">
+                <strong>Terminal SSH:</strong>
+              </div>
+              <div
+                class="code-block"
+                style="margin-bottom: 0.8rem; font-size: 0.8rem"
+              >
+                ssh pi@&lt;raspberry_pi_ip&gt;
+              </div>
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem">
+                <strong>Web Terminal:</strong>
+              </div>
+              <div class="code-block" style="font-size: 0.8rem">
+                http://&lt;raspberry_pi_ip&gt;:7681
+              </div>
+            </div>
+          </div>
+
+          <!-- Camera Setup -->
+          <div>
+            <h3
+              style="
+                color: var(--primary);
+                margin-bottom: 0.5rem;
+                font-size: 1rem;
+              "
+            >
+              Camera Setup
+            </h3>
+            <div class="command-section">
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem">
+                <strong>Start Camera 1:</strong>
+              </div>
+              <div
+                class="code-block"
+                style="margin-bottom: 0.8rem; font-size: 0.8rem"
+              >
+                mjpg_streamer -i "input_uvc.so -d /dev/video0" -o
+                "output_http.so -p 8080"
+              </div>
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem">
+                <strong>Check Devices:</strong>
+              </div>
+              <div class="code-block" style="font-size: 0.8rem">
+                ls /dev/video*
+              </div>
+            </div>
+          </div>
+
+          <!-- Health Monitoring -->
+          <div>
+            <h3
+              style="
+                color: var(--primary);
+                margin-bottom: 0.5rem;
+                font-size: 1rem;
+              "
+            >
+              Health Monitoring
+            </h3>
+            <div class="command-section">
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem">
+                <strong>Start Health Server:</strong>
+              </div>
+              <div
+                class="code-block"
+                style="margin-bottom: 0.8rem; font-size: 0.8rem"
+              >
+                cd /home/pi/monitoring && python3 simple_health_server.py
+              </div>
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem">
+                <strong>Install Dependencies:</strong>
+              </div>
+              <div class="code-block" style="font-size: 0.8rem">
+                sudo apt install python3-fastapi python3-uvicorn
+              </div>
+            </div>
+          </div>
+
+          <!-- Cry Detection -->
+          <div>
+            <h3
+              style="
+                color: var(--primary);
+                margin-bottom: 0.5rem;
+                font-size: 1rem;
+              "
+            >
+              Cry Detection
+            </h3>
+            <div class="command-section">
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem">
+                <strong>Start Cry Detection:</strong>
+              </div>
+              <div
+                class="code-block"
+                style="margin-bottom: 0.8rem; font-size: 0.8rem"
+              >
+                cd /home/pi/monitoring && python3 cry_detector.py
+              </div>
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem">
+                <strong>Install Audio:</strong>
+              </div>
+              <div class="code-block" style="font-size: 0.8rem">
+                sudo apt install python3-pyaudio portaudio19-dev
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // Global variables
+      let isHealthMonitoring = false;
+      let healthInterval;
+      let isCryDetectionActive = false;
+      let cryDetectionInterval;
+
+      // Pi configuration
+      const PI_IP = "192.168.8.137"; // Change this to your Pi's IP
+      const HEALTH_PORT = 9000;
+      const CRY_PORT = 8888;
+      const TERMINAL_PORT = 7681;
+
+      // Initialize on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("🚀 Pi Monitoring Dashboard loaded");
+        console.log(`📍 Health API: http://${PI_IP}:${HEALTH_PORT}/health`);
+        console.log(`🎤 Cry API: http://${PI_IP}:${CRY_PORT}/status`);
+
+        // Initialize terminal iframe
+        const terminalFrame = document.getElementById("terminalFrame");
+        terminalFrame.src = `http://${PI_IP}:${TERMINAL_PORT}`;
+
+        // Update debug info
+        document.getElementById(
+          "debugUrl"
+        ).textContent = `http://${PI_IP}:${HEALTH_PORT}/health`;
+      });
+
+      // === CAMERA FUNCTIONS ===
+
+      function startCam(camNum) {
+        const port = document.getElementById(`port${camNum}`).value;
+        const img = document.getElementById(`cam${camNum}`);
+        const overlay = document.getElementById(`cam${camNum}Overlay`);
+        const portDisplay = document.getElementById(`port${camNum}Display`);
+
+        // Update the stream URL
+        const streamUrl = `http://${PI_IP}:${port}/?action=stream`;
+        img.src = streamUrl;
+
+        // Show loading state
+        overlay.style.display = "flex";
+        img.style.display = "none";
+
+        // Update port display
+        portDisplay.textContent = port;
+
+        img.onload = function () {
+          overlay.style.display = "none";
+          img.style.display = "block";
+          console.log(
+            `✅ Camera ${camNum} started successfully on port ${port}`
+          );
+        };
+
+        img.onerror = function () {
+          console.error(`❌ Failed to load Camera ${camNum} on port ${port}`);
+          // Keep overlay visible to show error state
+          overlay.innerHTML = `
+            <div>❌</div>
+            <div>Camera ${camNum} Error</div>
+            <div style="font-size: 0.75rem; margin-top: 0.5rem">
+              Port: ${port} (Check connection)
+            </div>
+          `;
+        };
+      }
+
+      function stopCam(camNum) {
+        const img = document.getElementById(`cam${camNum}`);
+        const overlay = document.getElementById(`cam${camNum}Overlay`);
+        const port = document.getElementById(`port${camNum}`).value;
+
+        img.src = "";
+        img.style.display = "none";
+        overlay.style.display = "flex";
+
+        // Reset overlay content
+        overlay.innerHTML = `
+          <div>📷</div>
+          <div>Camera ${camNum} ${camNum === 1 ? "(Infant)" : "(LCD)"}</div>
+          <div style="font-size: 0.75rem; margin-top: 0.5rem">
+            Port: <span id="port${camNum}Display">${port}</span>
+          </div>
+        `;
+
+        console.log(`⏹️ Camera ${camNum} stopped`);
+      }
+
+      function openCam(camNum) {
+        const port = document.getElementById(`port${camNum}`).value;
+        const url = `http://${PI_IP}:${port}`;
+        window.open(url, `_camera${camNum}`);
+        console.log(`🔗 Opened Camera ${camNum} in new tab: ${url}`);
+      }
+
+      function startAllCams() {
+        console.log("🎬 Starting all cameras...");
+        startCam(1);
+        startCam(2);
+      }
+
+      function stopAllCams() {
+        console.log("⏹️ Stopping all cameras...");
+        stopCam(1);
+        stopCam(2);
+      }
+
+      // === HEALTH MONITORING FUNCTIONS ===
+
+      function toggleHealthMonitoring() {
+        if (isHealthMonitoring) {
+          stopHealthMonitoring();
+        } else {
+          startHealthMonitoring();
+        }
+      }
+
+      function startHealthMonitoring() {
+        const interval =
+          parseInt(document.getElementById("pollInterval").value) * 1000;
+        const btn = document.getElementById("healthBtn");
+
+        isHealthMonitoring = true;
+        btn.textContent = "⏹️ Stop";
+        btn.className = "btn btn-danger";
+
+        console.log(`📊 Starting health monitoring (${interval}ms interval)`);
+
+        // First fetch
+        fetchHealthData();
+
+        // Set up interval
+        healthInterval = setInterval(fetchHealthData, interval);
+      }
+
+      function stopHealthMonitoring() {
+        const btn = document.getElementById("healthBtn");
+
+        isHealthMonitoring = false;
+        btn.textContent = "▶️ Start";
+        btn.className = "btn btn-success";
+
+        if (healthInterval) {
+          clearInterval(healthInterval);
+          healthInterval = null;
+        }
+
+        console.log("⏹️ Health monitoring stopped");
+      }
+
+      async function fetchHealthData() {
+        const healthUrl = `http://${PI_IP}:${HEALTH_PORT}/health`;
+
+        try {
+          console.log(`📡 Fetching health data from: ${healthUrl}`);
+
+          const response = await fetch(healthUrl, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          console.log("📊 Health data received:", data);
+
+          updateHealthDisplay(data);
+          updateDebugInfo("Success", null, data);
+        } catch (error) {
+          console.error("❌ Health fetch error:", error);
+          updateDebugInfo("Error", error.message, null);
+          updateHealthDisplay(null, error);
+        }
+      }
+
+      function updateHealthDisplay(data, error = null) {
+        if (error) {
+          // Show error state
+          document.getElementById("cpuValue").textContent = "Error";
+          document.getElementById("ramValue").textContent = "Error";
+          document.getElementById("tempValue").textContent = "Error";
+          document.getElementById("powerValue").textContent = "Error";
+
+          // Reset progress bars
+          document.getElementById("cpuProgress").style.width = "0%";
+          document.getElementById("ramProgress").style.width = "0%";
+          return;
+        }
+
+        if (!data) return;
+
+        // Update values
+        document.getElementById("cpuValue").textContent = `${data.cpu}%`;
+        document.getElementById("ramValue").textContent = `${data.ram}%`;
+        document.getElementById("tempValue").textContent = `${data.temp}°C`;
+        document.getElementById("powerValue").textContent = data.power || "OK";
+
+        // Update progress bars
+        document.getElementById("cpuProgress").style.width = `${data.cpu}%`;
+        document.getElementById("ramProgress").style.width = `${data.ram}%`;
+
+        // Color coding for temperature
+        const tempElement = document.getElementById("tempValue");
+        if (data.temp > 70) {
+          tempElement.style.color = "var(--danger)";
+        } else if (data.temp > 60) {
+          tempElement.style.color = "var(--warning)";
+        } else {
+          tempElement.style.color = "var(--success)";
+        }
+      }
+
+      function updateDebugInfo(status, error, response) {
+        document.getElementById("debugError").textContent = error || "None";
+        if (response) {
+          document.getElementById("debugResponse").textContent = JSON.stringify(
+            response,
+            null,
+            2
+          );
+        }
+      }
+
+      function toggleDebugPanel() {
+        const panel = document.getElementById("debugPanel");
+        const toggle = document.getElementById("debugToggle");
+
+        if (panel.style.display === "none") {
+          panel.style.display = "block";
+          toggle.textContent = "Hide";
+        } else {
+          panel.style.display = "none";
+          toggle.textContent = "Show";
+        }
+      }
+
+      // === CRY DETECTION FUNCTIONS ===
+
+      function startCryDetection() {
+        isCryDetectionActive = true;
+        console.log("🎧 Starting cry detection monitoring...");
+
+        // Start polling cry detection status
+        cryDetectionInterval = setInterval(checkCryStatus, 1000);
+        checkCryStatus(); // Initial check
+      }
+
+      function stopCryDetection() {
+        isCryDetectionActive = false;
+        console.log("⏹️ Stopping cry detection monitoring...");
+
+        if (cryDetectionInterval) {
+          clearInterval(cryDetectionInterval);
+          cryDetectionInterval = null;
+        }
+
+        // Reset status
+        const statusElement = document.getElementById("cryStatus");
+        statusElement.textContent = "Stopped";
+        statusElement.className = "cry-status normal";
+      }
+
+      async function checkCryStatus() {
+        const cryUrl = `http://${PI_IP}:${CRY_PORT}/status`;
+
+        try {
+          const response = await fetch(cryUrl);
+          const data = await response.json();
+
+          const statusElement = document.getElementById("cryStatus");
+
+          if (data.crying) {
+            statusElement.textContent = "CRY DETECTED!";
+            statusElement.className = "cry-status crying";
+            console.log("🚨 CRY DETECTED!");
+          } else {
+            statusElement.textContent = "Normal";
+            statusElement.className = "cry-status normal";
+          }
+        } catch (error) {
+          console.error("❌ Cry detection error:", error);
+          const statusElement = document.getElementById("cryStatus");
+          statusElement.textContent = "Error";
+          statusElement.className = "cry-status error";
+        }
+      }
+
+      // === AUDIO FUNCTIONS ===
+
+      function playAudioStream() {
+        const audioPlayer = document.getElementById("audioPlayer");
+        const audioUrl = `http://${PI_IP}:8080/?action=stream`; // Adjust URL as needed
+
+        audioPlayer.src = audioUrl;
+        audioPlayer.play().catch((error) => {
+          console.error("❌ Audio play error:", error);
+          alert(
+            "Could not play audio stream. Check if audio streaming is available on the Pi."
+          );
+        });
+
+        console.log("🔊 Audio stream started");
+      }
+
+      function stopAudioStream() {
+        const audioPlayer = document.getElementById("audioPlayer");
+        audioPlayer.pause();
+        audioPlayer.src = "";
+        console.log("🔇 Audio stream stopped");
+      }
+
+      // === TERMINAL FUNCTIONS ===
+
+      function openTerminalTab() {
+        const terminalUrl = `http://${PI_IP}:${TERMINAL_PORT}`;
+        window.open(terminalUrl, "_terminal");
+        console.log(`🔗 Opened terminal in new tab: ${terminalUrl}`);
+      }
+
+      // === UTILITY FUNCTIONS ===
+
+      function testHealthAPI() {
+        const healthUrl = `http://${PI_IP}:${HEALTH_PORT}/health`;
+        console.log("🧪 Testing health API:", healthUrl);
+
+        fetch(healthUrl)
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Test response data:", data);
+            document.getElementById(
+              "debugResponse"
+            ).textContent = `Success: CPU=${data.cpu}%, RAM=${data.ram}%`;
+            document.getElementById("debugError").textContent = "None";
+          })
+          .catch((error) => {
+            console.error("Test error:", error);
+            document.getElementById("debugError").textContent = error.message;
+            document.getElementById("debugResponse").textContent = "Failed";
+          });
+      }
+
+      function clearDebugLog() {
+        document.getElementById("debugError").textContent = "None";
+        document.getElementById("debugResponse").textContent = "None";
+        console.clear();
+      }
+    </script>
+  </body>
+</html>

@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 """
-Real-time Cry Detection System for Raspberry Pi
-Uses audio input to detect baby crying sounds.
+Enhanced Real-time Cry Detection System for Raspberry Pi
+Hybrid architecture: Real-time detection → 5-sec recording → Classification
 
 Features:
-- Real-time audio monitoring
-- Machine learning-based cry detection
+- Real-time audio monitoring with basic cry detection (existing)
+- 5-second audio recording when cry detected
+- Integration with cry classification service (YAMNet + Ensemble)
 - HTTP API for status updates
+- ThingsBoard telemetry with classification data
 - Audio level monitoring
 - Configurable sensitivity
 
 Usage:
-    python3 cry_detector.py
+    python3 cry_detector_enhanced.py
 
 Dependencies:
     sudo apt install python3-pyaudio python3-numpy python3-scipy
-    pip3 install librosa soundfile --break-system-packages
+    pip3 install librosa soundfile requests --break-system-packages
 """
 
 import numpy as np
@@ -33,6 +35,18 @@ import signal
 import sys
 import paho.mqtt.client as mqtt
 import logging
+import requests
+from collections import deque
+import tempfile
+
+# ThingsBoard Configuration
+TB_HOST = "thingsboard.cloud"
+TB_PORT = 1883
+ACCESS_TOKEN = os.getenv("TB_ACCESS_TOKEN", "2ztut7be6ppooyiueorb")
+
+# Cry Classification Service Configuration
+CLASSIFICATION_SERVICE_URL = os.getenv("CRY_CLASSIFY_URL", "http://localhost:8890/classify")
+CLASSIFICATION_ENABLED = True  # Enable/disable classification integration
 
 # Setup logging
 logging.basicConfig(
@@ -41,38 +55,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configuration paths
-CONFIG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'incubator_monitoring_with_thingsboard_integration', 'config')
-DEVICE_CONFIG_PATH = os.path.join(CONFIG_DIR, 'device_credentials.json')
-
-# Load device configuration
-try:
-    with open(DEVICE_CONFIG_PATH, 'r') as f:
-        device_config = json.load(f)
-    logger.info(f"✓ Loaded device configuration from {DEVICE_CONFIG_PATH}")
-except FileNotFoundError:
-    logger.error(f"✗ Configuration file not found: {DEVICE_CONFIG_PATH}")
-    # Fallback to environment variable or default
-    device_config = {
-        'thingsboard_host': 'thingsboard.cloud',
-        'mqtt_port': 1883,
-        'access_token': os.getenv("TB_ACCESS_TOKEN", "2ztut7be6ppooyiueorb")
-    }
-except Exception as e:
-    logger.error(f"✗ Error loading configuration: {e}")
-    device_config = {
-        'thingsboard_host': 'thingsboard.cloud',
-        'mqtt_port': 1883,
-        'access_token': os.getenv("TB_ACCESS_TOKEN", "2ztut7be6ppooyiueorb")
-    }
-
-# ThingsBoard Configuration
-TB_HOST = device_config.get('thingsboard_host', 'thingsboard.cloud')
-TB_PORT = device_config.get('mqtt_port', 1883)
-ACCESS_TOKEN = device_config.get('access_token')
-
 class ThingsBoardClient:
-    """MQTT client for ThingsBoard communication"""
+    """MQTT client for ThingsBoard communication with cry classification telemetry"""
     
     def __init__(self):
         if not ACCESS_TOKEN:
@@ -137,15 +121,15 @@ class ThingsBoardClient:
                 logger.error(f"Error disconnecting from ThingsBoard: {e}")
     
     def publish_cry_data(self, cry_status):
-        """Publish cry detection data to ThingsBoard"""
+        """Publish enhanced cry detection data with classification to ThingsBoard"""
         if not self.enabled or not self.connected:
             return False
         
         try:
-            # Prepare telemetry data
+            # Prepare base telemetry data
             telemetry = {
                 'cry_detected': cry_status.get('cry_detected', False),
-                'cry_audio_level': round(cry_status.get('audio_level', 0), 3),  # 3 decimal places for better precision
+                'cry_audio_level': round(cry_status.get('audio_level', 0), 3),
                 'cry_sensitivity': cry_status.get('sensitivity', 0.6),
                 'cry_total_detections': cry_status.get('total_detections', 0),
                 'cry_monitoring': cry_status.get('is_monitoring', False),
@@ -156,6 +140,26 @@ class ThingsBoardClient:
             if cry_status.get('last_cry_time'):
                 telemetry['cry_last_detected'] = cry_status['last_cry_time']
             
+            # Add classification data if available
+            if cry_status.get('classification'):
+                telemetry['cry_classification'] = cry_status['classification']
+                telemetry['cry_classification_confidence'] = cry_status.get('classification_confidence', 0)
+                
+                # Add top 3 probabilities for dashboard display
+                if cry_status.get('classification_probabilities'):
+                    probs = cry_status['classification_probabilities']
+                    sorted_probs = sorted(probs.items(), key=lambda x: x[1], reverse=True)[:3]
+                    telemetry['cry_classification_top1'] = f"{sorted_probs[0][0]}: {sorted_probs[0][1]:.2%}"
+                    if len(sorted_probs) > 1:
+                        telemetry['cry_classification_top2'] = f"{sorted_probs[1][0]}: {sorted_probs[1][1]:.2%}"
+                    if len(sorted_probs) > 2:
+                        telemetry['cry_classification_top3'] = f"{sorted_probs[2][0]}: {sorted_probs[2][1]:.2%}"
+            
+            # Add verification status
+            if cry_status.get('verified'):
+                telemetry['cry_verified'] = cry_status['verified']
+                telemetry['cry_verification_confidence'] = cry_status.get('verification_confidence', 0)
+            
             payload = json.dumps(telemetry)
             result = self.client.publish(self.telemetry_topic, payload, qos=1)
             
@@ -163,7 +167,7 @@ class ThingsBoardClient:
             result.wait_for_publish()
             
             if result.rc == mqtt.MQTT_ERR_SUCCESS:
-                logger.info(f"✓ Cry data published to ThingsBoard")
+                logger.info(f"✓ Cry data published to ThingsBoard (classification: {cry_status.get('classification', 'N/A')})")
                 return True
             else:
                 logger.error(f"✗ Publish failed with code {result.rc}")
@@ -171,15 +175,110 @@ class ThingsBoardClient:
         except Exception as e:
             logger.error(f"Error publishing to ThingsBoard: {e}")
             return False
-    
-    def disconnect(self):
-        """Disconnect from ThingsBoard"""
-        if self.enabled:
-            self.client.loop_stop()
-            self.client.disconnect()
-            logger.info("Disconnected from ThingsBoard")
 
-class CryDetector:
+class AudioRecorder:
+    """Records audio in rolling buffer for 5-second capture on trigger"""
+    
+    def __init__(self, sample_rate=16000, buffer_duration=5.0):
+        self.sample_rate = sample_rate
+        self.buffer_duration = buffer_duration
+        self.buffer_size = int(sample_rate * buffer_duration)
+        
+        # Rolling buffer to keep last 5 seconds
+        self.audio_buffer = deque(maxlen=self.buffer_size)
+        self.lock = threading.Lock()
+        
+    def add_audio(self, audio_chunk):
+        """Add audio chunk to rolling buffer"""
+        with self.lock:
+            self.audio_buffer.extend(audio_chunk)
+    
+    def get_recording(self):
+        """Get current 5-second recording as numpy array"""
+        with self.lock:
+            if len(self.audio_buffer) == 0:
+                return None
+            return np.array(list(self.audio_buffer), dtype=np.float32)
+    
+    def save_recording(self, filepath):
+        """Save current buffer to WAV file"""
+        recording = self.get_recording()
+        if recording is None:
+            return False
+        
+        try:
+            import wave
+            with wave.open(filepath, 'wb') as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)  # 16-bit
+                wf.setframerate(self.sample_rate)
+                # Convert float32 to int16
+                audio_int16 = (recording * 32767).astype(np.int16)
+                wf.writeframes(audio_int16.tobytes())
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save recording: {e}")
+            return False
+
+class CryClassificationClient:
+    """Client for cry classification service integration"""
+    
+    def __init__(self, service_url):
+        self.service_url = service_url
+        self.enabled = CLASSIFICATION_ENABLED
+        self.last_health_check = 0
+        self.service_available = False
+        
+    def check_health(self):
+        """Check if classification service is available"""
+        try:
+            health_url = self.service_url.replace('/classify', '/health')
+            response = requests.get(health_url, timeout=2)
+            self.service_available = response.status_code == 200
+            self.last_health_check = time.time()
+            return self.service_available
+        except Exception as e:
+            logger.warning(f"Classification service health check failed: {e}")
+            self.service_available = False
+            return False
+    
+    def classify_audio(self, audio_filepath):
+        """
+        Send audio file to classification service
+        Returns: dict with classification results or None on failure
+        """
+        if not self.enabled:
+            return None
+        
+        # Check service health if last check was > 60 seconds ago
+        if time.time() - self.last_health_check > 60:
+            self.check_health()
+        
+        if not self.service_available:
+            logger.warning("Classification service not available, skipping classification")
+            return None
+        
+        try:
+            with open(audio_filepath, 'rb') as audio_file:
+                files = {'file': (os.path.basename(audio_filepath), audio_file, 'audio/wav')}
+                response = requests.post(self.service_url, files=files, timeout=10)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    logger.info(f"✓ Classification result: {result.get('message')}")
+                    return result
+                else:
+                    logger.error(f"✗ Classification failed: {response.status_code} - {response.text}")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"Classification request error: {e}")
+            self.service_available = False
+            return None
+
+class EnhancedCryDetector:
+    """Enhanced cry detector with recording and classification"""
+    
     def __init__(self, sample_rate=16000, chunk_size=1024, sensitivity=0.6):
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
@@ -201,17 +300,34 @@ class CryDetector:
         
         # Statistics
         self.total_detections = 0
+        self.verified_cries = 0
+        self.false_positives = 0
+        
+        # Recording and classification
+        self.audio_recorder = AudioRecorder(sample_rate=sample_rate, buffer_duration=5.0)
+        self.classification_client = CryClassificationClient(CLASSIFICATION_SERVICE_URL)
+        
+        # Current classification state
+        self.current_classification = None
+        self.current_classification_confidence = None
+        self.current_classification_probs = None
+        self.cry_verified = False
+        self.verification_confidence = 0.0
         
         # ThingsBoard publishing
         self.last_publish_time = 0
         self.publish_interval = 30  # Publish every 30 seconds
-        self.false_positives = 0
         self.monitoring_start_time = None
         
-        print("🍼 Cry Detector initialized")
-        print(f"📊 Sample Rate: {sample_rate} Hz")
-        print(f"🔊 Chunk Size: {chunk_size}")
-        print(f"⚙️ Sensitivity: {sensitivity}")
+        # Prevent duplicate classifications for same cry event
+        self.last_classification_time = 0
+        self.classification_cooldown = 10  # seconds
+        
+        logger.info("🍼 Enhanced Cry Detector initialized")
+        logger.info(f"📊 Sample Rate: {sample_rate} Hz")
+        logger.info(f"🔊 Chunk Size: {chunk_size}")
+        logger.info(f"⚙️ Sensitivity: {sensitivity}")
+        logger.info(f"🎯 Classification service: {CLASSIFICATION_SERVICE_URL}")
 
     def start_monitoring(self):
         """Start audio monitoring for cry detection"""
@@ -224,10 +340,10 @@ class CryDetector:
             # Find audio input device
             device_index = self.find_audio_device()
             if device_index is None:
-                print("❌ No audio input device found!")
+                logger.error("❌ No audio input device found!")
                 return False
             
-            print(f"🎤 Using audio device: {device_index}")
+            logger.info(f"🎤 Using audio device: {device_index}")
             
             # Open audio stream
             self.stream = self.p.open(
@@ -248,11 +364,18 @@ class CryDetector:
             self.audio_thread = threading.Thread(target=self.process_audio, daemon=True)
             self.audio_thread.start()
             
-            print("🎧 Started cry detection monitoring")
+            # Check classification service health
+            if self.classification_client.enabled:
+                if self.classification_client.check_health():
+                    logger.info("✅ Classification service is available")
+                else:
+                    logger.warning("⚠️ Classification service not available (will retry)")
+            
+            logger.info("🎧 Started enhanced cry detection monitoring")
             return True
             
         except Exception as e:
-            print(f"❌ Failed to start monitoring: {e}")
+            logger.error(f"❌ Failed to start monitoring: {e}")
             return False
 
     def stop_monitoring(self):
@@ -269,13 +392,13 @@ class CryDetector:
         if hasattr(self, 'p'):
             self.p.terminate()
             
-        print("⏹️ Stopped cry detection monitoring")
+        logger.info("⏹️ Stopped cry detection monitoring")
         
         # Publish monitoring stopped status to ThingsBoard
         if tb_client and tb_client.connected:
             status = self.get_status()
             tb_client.publish_cry_data(status)
-            print("📡 Monitoring stopped status published to ThingsBoard")
+            logger.info("📡 Monitoring stopped status published to ThingsBoard")
 
     def find_audio_device(self):
         """Find a suitable audio input device"""
@@ -287,7 +410,7 @@ class CryDetector:
                 
                 # Look for input devices
                 if device_info['maxInputChannels'] > 0:
-                    print(f"🎤 Found input device {i}: {device_info['name']}")
+                    logger.info(f"🎤 Found input device {i}: {device_info['name']}")
                     return i
                     
             return None
@@ -299,10 +422,14 @@ class CryDetector:
         if self.is_monitoring:
             audio_data = np.frombuffer(in_data, dtype=np.float32)
             self.audio_queue.put(audio_data)
+            
+            # Add to rolling buffer for recording
+            self.audio_recorder.add_audio(audio_data)
+            
         return (None, pyaudio.paContinue)
 
     def process_audio(self):
-        """Process audio data for cry detection"""
+        """Process audio data for cry detection with classification integration"""
         audio_buffer = []
         
         while self.is_monitoring:
@@ -331,50 +458,121 @@ class CryDetector:
                         status = self.get_status()
                         if tb_client.publish_cry_data(status):
                             self.last_publish_time = current_time
-                            print(f"📡 Periodic status published to ThingsBoard")
                 
                 time.sleep(0.01)  # Small delay to prevent CPU overload
                 
             except queue.Empty:
                 continue
             except Exception as e:
-                print(f"❌ Audio processing error: {e}")
+                logger.error(f"❌ Audio processing error: {e}")
 
     def analyze_audio(self, audio_data):
-        """Analyze audio data for cry patterns"""
+        """Analyze audio data for cry patterns with classification"""
         try:
-            # Basic cry detection algorithm
+            # Basic cry detection algorithm (Stage 1: Real-time trigger)
             is_cry = self.detect_cry_simple(audio_data)
             
             if is_cry and not self.cry_detected:
                 self.cry_detected = True
                 self.last_cry_time = time.time()
                 self.total_detections += 1
-                print(f"👶 CRY DETECTED! (#{self.total_detections})")
+                logger.info(f"👶 CRY DETECTED! (#{self.total_detections})")
                 
-                # Publish to ThingsBoard when cry is detected
+                # Trigger 5-second recording and classification
+                # Only classify if cooldown period has passed
+                if time.time() - self.last_classification_time > self.classification_cooldown:
+                    self.classify_current_cry()
+                else:
+                    logger.info(f"⏳ Classification cooldown active (last: {time.time() - self.last_classification_time:.1f}s ago)")
+                
+                # Publish to ThingsBoard with classification data
                 if tb_client and tb_client.connected:
                     status = self.get_status()
                     tb_client.publish_cry_data(status)
-                    print("📡 Cry detection published to ThingsBoard")
                 
             elif not is_cry and self.cry_detected:
                 # Reset cry detection after 3 seconds of no crying
                 if time.time() - self.last_cry_time > 3.0:
                     self.cry_detected = False
-                    print("😴 Cry stopped")
+                    logger.info("😴 Cry stopped")
+                    
+                    # Clear classification state
+                    self.current_classification = None
+                    self.current_classification_confidence = None
+                    self.current_classification_probs = None
+                    self.cry_verified = False
+                    self.verification_confidence = 0.0
                     
                     # Publish status update when cry stops
                     if tb_client and tb_client.connected:
                         status = self.get_status()
                         tb_client.publish_cry_data(status)
-                        print("📡 Cry stopped status published to ThingsBoard")
                     
         except Exception as e:
-            print(f"❌ Analysis error: {e}")
+            logger.error(f"❌ Analysis error: {e}")
+
+    def classify_current_cry(self):
+        """
+        Classify current cry by saving 5-second recording and sending to classification service
+        """
+        logger.info("🎙️ Recording 5-second audio for classification...")
+        
+        try:
+            # Save current 5-second buffer to temp file
+            with tempfile.NamedTemporaryFile(mode='wb', suffix='.wav', delete=False) as temp_file:
+                temp_path = temp_file.name
+            
+            if not self.audio_recorder.save_recording(temp_path):
+                logger.error("Failed to save recording")
+                return
+            
+            logger.info(f"💾 Recording saved: {temp_path}")
+            
+            # Send to classification service
+            classification_result = self.classification_client.classify_audio(temp_path)
+            
+            # Update classification time
+            self.last_classification_time = time.time()
+            
+            # Clean up temp file
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
+            
+            if classification_result and classification_result.get('success'):
+                # Stage 2: Verify with YAMNet detection
+                self.cry_verified = classification_result.get('is_cry', False)
+                self.verification_confidence = classification_result.get('cry_confidence', 0.0)
+                
+                if self.cry_verified:
+                    logger.info(f"✅ Cry verified by YAMNet (confidence: {self.verification_confidence:.2%})")
+                    
+                    # Stage 3: Store classification results
+                    self.current_classification = classification_result.get('classification')
+                    self.current_classification_confidence = classification_result.get('classification_confidence')
+                    self.current_classification_probs = classification_result.get('probabilities')
+                    
+                    if self.current_classification:
+                        self.verified_cries += 1
+                        logger.info(f"🏷️ Classification: {self.current_classification} ({self.current_classification_confidence:.2%})")
+                    else:
+                        logger.warning("⚠️ Cry verified but classification confidence too low")
+                else:
+                    # False positive detected
+                    self.false_positives += 1
+                    logger.warning(f"⚠️ False positive detected by YAMNet (confidence: {self.verification_confidence:.2%})")
+                    self.current_classification = None
+                    self.current_classification_confidence = None
+                    self.current_classification_probs = None
+            else:
+                logger.warning("⚠️ Classification service returned no results")
+                
+        except Exception as e:
+            logger.error(f"❌ Classification error: {e}")
 
     def detect_cry_simple(self, audio_data):
-        """Simple cry detection based on audio characteristics"""
+        """Simple cry detection based on audio characteristics (Stage 1: Real-time trigger)"""
         try:
             # Calculate basic audio features
             rms = np.sqrt(np.mean(audio_data**2))
@@ -405,23 +603,40 @@ class CryDetector:
             return False
             
         except Exception as e:
-            print(f"❌ Detection error: {e}")
+            logger.error(f"❌ Detection error: {e}")
             return False
 
     def get_status(self):
-        """Get current detection status"""
+        """Get current detection status with classification data"""
         uptime = time.time() - self.monitoring_start_time if self.monitoring_start_time else 0
         
-        return {
+        status = {
             "is_monitoring": self.is_monitoring,
             "cry_detected": self.cry_detected,
             "audio_level": round(self.audio_level, 3),
             "sensitivity": self.sensitivity,
             "total_detections": self.total_detections,
+            "verified_cries": self.verified_cries,
+            "false_positives": self.false_positives,
             "last_cry_time": self.last_cry_time,
             "uptime_minutes": round(uptime / 60, 1),
-            "timestamp": time.time()
+            "timestamp": time.time(),
+            "classification_enabled": self.classification_client.enabled,
+            "classification_service_available": self.classification_client.service_available
         }
+        
+        # Add classification data if available
+        if self.current_classification:
+            status["classification"] = self.current_classification
+            status["classification_confidence"] = self.current_classification_confidence
+            status["classification_probabilities"] = self.current_classification_probs
+        
+        # Add verification status
+        if self.cry_detected:
+            status["verified"] = self.cry_verified
+            status["verification_confidence"] = self.verification_confidence
+        
+        return status
 
 # HTTP API for cry detection status
 class CryDetectionHTTPHandler(http.server.BaseHTTPRequestHandler):
@@ -502,13 +717,16 @@ class CryDetectionHTTPHandler(http.server.BaseHTTPRequestHandler):
     def send_info(self):
         """Send API info"""
         info = {
-            "message": "Cry Detection API",
-            "version": "1.0.0",
+            "message": "Enhanced Cry Detection API with Classification",
+            "version": "2.0.0",
+            "architecture": "Hybrid: Real-time detection → 5-sec recording → YAMNet verification → Ensemble classification",
             "endpoints": {
-                "/cry/status": "Get detection status",
+                "/cry/status": "Get detection status (includes classification)",
                 "/cry/start": "Start monitoring",
                 "/cry/stop": "Stop monitoring"
-            }
+            },
+            "classification_service": CLASSIFICATION_SERVICE_URL,
+            "classification_enabled": CLASSIFICATION_ENABLED
         }
         
         self.send_response(200)
@@ -522,17 +740,17 @@ class CryDetectionHTTPHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         """Custom log format"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[{timestamp}] {format % args}")
+        logger.info(f"[HTTP] {format % args}")
 
 # Global cry detector instance
-cry_detector = CryDetector()
+cry_detector = EnhancedCryDetector()
 
 # Global ThingsBoard client instance
 tb_client = None
 
 def signal_handler(sig, frame):
     """Handle Ctrl+C gracefully"""
-    print("\n🛑 Shutting down cry detector...")
+    logger.info("\n🛑 Shutting down enhanced cry detector...")
     cry_detector.stop_monitoring()
     if tb_client:
         tb_client.disconnect()
@@ -544,19 +762,20 @@ def main():
     
     signal.signal(signal.SIGINT, signal_handler)
     
-    print("🍼 Cry Detection System Starting...")
-    print("=" * 50)
+    logger.info("=" * 70)
+    logger.info("🍼 Enhanced Cry Detection System Starting...")
+    logger.info("=" * 70)
     
     # Initialize ThingsBoard client
     try:
         tb_client = ThingsBoardClient()
         if tb_client.enabled:
             tb_client.connect()
-            print("✅ ThingsBoard connection initialized")
+            logger.info("✅ ThingsBoard connection initialized")
         else:
-            print("⚠️ ThingsBoard integration disabled (missing credentials)")
+            logger.warning("⚠️ ThingsBoard integration disabled (missing credentials)")
     except Exception as e:
-        print(f"⚠️ Failed to initialize ThingsBoard: {e}")
+        logger.warning(f"⚠️ Failed to initialize ThingsBoard: {e}")
         tb_client = None
     
     # Start HTTP server
@@ -565,31 +784,32 @@ def main():
     
     try:
         httpd = http.server.HTTPServer(server_address, CryDetectionHTTPHandler)
-        print(f"🌐 Cry Detection API: http://localhost:{port}")
-        print(f"📊 Status endpoint: http://localhost:{port}/cry/status")
-        print(f"▶️  Start endpoint: http://localhost:{port}/cry/start")
-        print(f"⏹️  Stop endpoint: http://localhost:{port}/cry/stop")
-        print(f"🎤 Audio monitoring ready")
-        print("=" * 50)
+        logger.info(f"🌐 Enhanced Cry Detection API: http://localhost:{port}")
+        logger.info(f"📊 Status endpoint: http://localhost:{port}/cry/status")
+        logger.info(f"▶️  Start endpoint: http://localhost:{port}/cry/start")
+        logger.info(f"⏹️  Stop endpoint: http://localhost:{port}/cry/stop")
+        logger.info(f"🎤 Audio monitoring ready")
+        logger.info(f"🎯 Classification service: {CLASSIFICATION_SERVICE_URL}")
+        logger.info("=" * 70)
         
         # Auto-start monitoring on server startup
-        print("🚀 Auto-starting cry detection monitoring...")
+        logger.info("🚀 Auto-starting enhanced cry detection monitoring...")
         if cry_detector.start_monitoring():
-            print("✅ Cry detection monitoring started automatically")
+            logger.info("✅ Cry detection monitoring started automatically")
             # Publish initial status to ThingsBoard
             if tb_client and tb_client.connected:
                 status = cry_detector.get_status()
                 tb_client.publish_cry_data(status)
-                print("📡 Initial status published to ThingsBoard")
+                logger.info("📡 Initial status published to ThingsBoard")
         else:
-            print("⚠️ Failed to auto-start monitoring")
+            logger.warning("⚠️ Failed to auto-start monitoring")
         
-        print("⏹️  Press Ctrl+C to stop")
+        logger.info("⏹️  Press Ctrl+C to stop")
         
         httpd.serve_forever()
         
     except Exception as e:
-        print(f"❌ Server error: {e}")
+        logger.error(f"❌ Server error: {e}")
         cry_detector.stop_monitoring()
 
 if __name__ == "__main__":

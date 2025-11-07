@@ -1,0 +1,2455 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Raspberry Pi Monitoring Dashboard</title>
+    <style>
+      :root {
+        --bg: #0a0e16;
+        --surface: #1a1e26;
+        --surface-light: #2a2e36;
+        --border: #3a3e46;
+        --text: #e6e8ea;
+        --text-muted: #9ca3af;
+        --primary: #00d4ff;
+        --primary-dark: #0094cc;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --error: #ef4444;
+        --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        overflow-x: hidden;
+      }
+
+      /* Header */
+      .header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--gradient);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+      }
+
+      .logo-text {
+        font-size: 1.25rem;
+        font-weight: 700;
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .connection-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .input-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .input {
+        background: var(--surface-light);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        min-width: 200px;
+        transition: all 0.2s;
+      }
+
+      .input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+      }
+
+      .btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .btn:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn-secondary {
+        background: var(--surface-light);
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+
+      .btn-secondary:hover {
+        background: var(--border);
+      }
+
+      .btn-success {
+        background: var(--success);
+      }
+      .btn-warning {
+        background: var(--warning);
+      }
+      .btn-error {
+        background: var(--error);
+      }
+
+      .connection-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--error);
+        animation: pulse 2s infinite;
+      }
+
+      .status-dot.connected {
+        background: var(--success);
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Main Content */
+      .main {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+      }
+
+      .card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .card-icon {
+        width: 20px;
+        height: 20px;
+        background: var(--primary);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: white;
+      }
+
+      /* Camera Section */
+      .camera-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .camera-container {
+        position: relative;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        aspect-ratio: 16/9;
+      }
+
+      .camera-stream {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .camera-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+      }
+
+      .camera-controls {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+      }
+
+      /* Terminal Section */
+      .terminal-container {
+        background: #1a1a1a;
+        border-radius: 8px;
+        overflow: hidden;
+        height: 300px;
+        border: 1px solid var(--border);
+      }
+
+      .terminal-header {
+        background: #2a2a2a;
+        padding: 0.5rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .terminal-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+
+      .terminal-dot:nth-child(1) {
+        background: #ff5f56;
+      }
+      .terminal-dot:nth-child(2) {
+        background: #ffbd2e;
+      }
+      .terminal-dot:nth-child(3) {
+        background: #27ca3f;
+      }
+
+      .terminal-iframe {
+        width: 100%;
+        height: calc(100% - 40px);
+        border: none;
+        background: #1a1a1a;
+      }
+
+      /* Audio Section */
+      .audio-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .audio-player {
+        width: 100%;
+        border-radius: 8px;
+      }
+
+      .cry-detector {
+        background: var(--surface-light);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+      }
+
+      .cry-status {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .cry-status.detected {
+        color: var(--warning);
+        animation: pulse 1s infinite;
+      }
+
+      .cry-status.normal {
+        color: var(--success);
+      }
+
+      /* Health Monitoring */
+      .health-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .metric-card {
+        background: var(--surface-light);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+      }
+
+      .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+
+      .metric-label {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: var(--surface-light);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 0.5rem;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: var(--gradient);
+        transition: width 0.3s ease;
+        border-radius: 4px;
+      }
+
+      /* SSH Commands Section */
+      .ssh-section {
+        grid-column: 1 / -1;
+      }
+
+      .command-list {
+        background: var(--surface-light);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+      }
+
+      .command-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 0.5rem;
+      }
+
+      .command-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+      }
+
+      .command-text {
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+        background: var(--bg);
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        flex: 1;
+        margin-right: 1rem;
+      }
+
+      .copy-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .header-content {
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .connection-controls {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        .camera-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .main {
+          padding: 1rem;
+        }
+      }
+
+      /* Animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .card {
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      /* Scrollbar Styling */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--surface);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <div class="logo-icon">π</div>
+          <div class="logo-text">Raspberry Pi Monitoring Dashboard</div>
+        </div>
+        <div class="connection-controls">
+          <div class="input-group">
+            <label
+              for="host"
+              style="font-size: 0.875rem; color: var(--text-muted)"
+              >Pi IP:</label
+            >
+            <input
+              id="host"
+              type="text"
+              class="input"
+              value="192.168.8.137"
+              placeholder="192.168.1.100"
+            />
+            <button class="btn btn-secondary" onclick="applyHost()">
+              <span>🔄</span> Connect
+            </button>
+          </div>
+          <div class="connection-status">
+            <div class="status-dot" id="connectionStatus"></div>
+            <span id="connectionText">Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Single Frame Layout - Everything Visible -->
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; height: calc(100vh - 120px);">
+        
+        <!-- Left Column: Cameras + Audio -->
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          
+          <!-- Camera Section -->
+          <div class="card" style="flex: 1;">
+            <div class="card-header">
+              <h2 class="card-title">
+                <div class="card-icon">📹</div>
+                Live Camera Streams
+              </h2>
+              <div style="display: flex; gap: 0.5rem;">
+                <button class="btn" onclick="startAllCams()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                  🎬 Start All
+                </button>
+                <button class="btn btn-secondary" onclick="stopAllCams()" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                  ⏹️ Stop All
+                </button>
+              </div>
+            </div>
+
+            <div class="camera-grid">
+              <!-- Camera 1 -->
+              <div>
+                <div class="camera-container">
+                  <img id="cam1" class="camera-stream" alt="Camera 1 Stream" style="display: none" />
+                  <div class="camera-overlay" id="cam1Overlay">
+                    <div>📷</div>
+                    <div>Camera 1 (Infant)</div>
+                    <div style="font-size: 0.75rem; margin-top: 0.5rem">
+                      Port: <span id="port1Display">8080</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="camera-controls" style="margin-top: 0.5rem;">
+                  <input id="port1" type="number" class="input" value="8080" placeholder="8080" style="width: 60px; padding: 0.3rem; font-size: 0.8rem;" />
+                  <button class="btn btn-success" onclick="startCam(1)" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Start</button>
+                  <button class="btn btn-secondary" onclick="stopCam(1)" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Stop</button>
+                  <button class="btn btn-secondary" onclick="openCam(1)" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">🔗</button>
+                </div>
+              </div>
+
+              <!-- Camera 2 -->
+              <div>
+                <div class="camera-container">
+                  <img id="cam2" class="camera-stream" alt="Camera 2 Stream" style="display: none" />
+                  <div class="camera-overlay" id="cam2Overlay">
+                    <div>📷</div>
+                    <div>Camera 2 (LCD)</div>
+                    <div style="font-size: 0.75rem; margin-top: 0.5rem">
+                      Port: <span id="port2Display">8081</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="camera-controls" style="margin-top: 0.5rem;">
+                  <input id="port2" type="number" class="input" value="8081" placeholder="8081" style="width: 60px; padding: 0.3rem; font-size: 0.8rem;" />
+                  <button class="btn btn-success" onclick="startCam(2)" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Start</button>
+                  <button class="btn btn-secondary" onclick="stopCam(2)" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Stop</button>
+                  <button class="btn btn-secondary" onclick="openCam(2)" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">🔗</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Audio Monitoring Section -->
+          <div class="card" style="flex: 0 0 auto;">
+            <div class="card-header">
+              <h2 class="card-title" style="font-size: 1rem;">
+                <div class="card-icon">🎤</div>
+                Audio & Cry Detection
+              </h2>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <!-- Cry Detection -->
+              <div class="cry-detector" style="padding: 0.8rem;">
+                <div class="cry-status normal" id="cryStatus" style="font-size: 1rem; margin-bottom: 0.3rem;">Normal</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.8rem;">
+                  Real-time Cry Detection
+                </div>
+                <div style="display: flex; gap: 0.4rem; justify-content: center;">
+                  <button class="btn btn-success" onclick="startCryDetection()" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                    🎧 Start
+                  </button>
+                  <button class="btn btn-secondary" onclick="stopCryDetection()" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                    ⏹️ Stop
+                  </button>
+                </div>
+              </div>
+
+              <!-- Audio Player -->
+              <div>
+                <div style="margin-bottom: 0.5rem;">
+                  <h4 style="font-size: 0.9rem; margin-bottom: 0.3rem; color: var(--text);">Audio Stream</h4>
+                  <audio id="audioPlayer" class="audio-player" controls preload="none" style="width: 100%; height: 35px;">
+                    Your browser does not support the audio element.
+                  </audio>
+                </div>
+                <div style="display: flex; gap: 0.4rem; justify-content: center;">
+                  <button class="btn" onclick="playAudioStream()" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                    ▶️ Play
+                  </button>
+                  <button class="btn btn-secondary" onclick="stopAudioStream()" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                    ⏹️ Stop
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Health + Terminal -->
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          
+          <!-- System Health -->
+          <div class="card" style="flex: 0 0 auto;">
+            <div class="card-header">
+              <h2 class="card-title" style="font-size: 1rem;">
+                <div class="card-icon">💓</div>
+                System Health
+              </h2>
+              <div style="display: flex; align-items: center; gap: 0.3rem;">
+                <input id="pollInterval" type="number" class="input" value="2" min="1" max="60" style="width: 45px; padding: 0.3rem; font-size: 0.8rem;" />
+                <span style="font-size: 0.8rem; color: var(--text-muted);">sec</span>
+                <button class="btn btn-success" onclick="toggleHealthMonitoring()" id="healthBtn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                  ▶️ Start
+                </button>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem;">
+              <div class="metric-card" style="padding: 0.8rem;">
+                <div class="metric-value" id="cpuValue" style="color: var(--primary); font-size: 1.5rem;">--</div>
+                <div class="metric-label" style="font-size: 0.75rem;">CPU Usage</div>
+                <div class="progress-bar" style="height: 6px; margin-top: 0.3rem;">
+                  <div class="progress-fill" id="cpuProgress" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <div class="metric-card" style="padding: 0.8rem;">
+                <div class="metric-value" id="ramValue" style="color: var(--success); font-size: 1.5rem;">--</div>
+                <div class="metric-label" style="font-size: 0.75rem;">RAM Usage</div>
+                <div class="progress-bar" style="height: 6px; margin-top: 0.3rem;">
+                  <div class="progress-fill" id="ramProgress" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <div class="metric-card" style="padding: 0.8rem;">
+                <div class="metric-value" id="tempValue" style="color: var(--warning); font-size: 1.5rem;">--</div>
+                <div class="metric-label" style="font-size: 0.75rem;">Temperature</div>
+              </div>
+
+              <div class="metric-card" style="padding: 0.8rem;">
+                <div class="metric-value" id="powerValue" style="color: var(--success); font-size: 1.5rem;">--</div>
+                <div class="metric-label" style="font-size: 0.75rem;">Power Status</div>
+              </div>
+            </div>
+
+            <!-- Debug Panel (Compact) -->
+            <div style="padding: 0.8rem; background: var(--surface-light); border-radius: 6px; border: 1px solid var(--border);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                <h3 style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Debug Info</h3>
+                <button class="btn" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;" onclick="toggleDebugPanel()">
+                  <span id="debugToggle">Show</span>
+                </button>
+              </div>
+              <div id="debugPanel" style="display: none;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.3rem;">
+                  Health: <span id="debugUrl">--</span>
+                </div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.3rem;">
+                  Error: <span id="debugError">None</span>
+                </div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.3rem;">
+                  Response: <span id="debugResponse">None</span>
+                </div>
+                <div style="display: flex; gap: 0.3rem;">
+                  <button class="btn btn-secondary" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;" onclick="testHealthAPI()">
+                    🧪 Test
+                  </button>
+                  <button class="btn btn-secondary" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;" onclick="clearDebugLog()">
+                    �️ Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SSH Terminal -->
+          <div class="card" style="flex: 1;">
+            <div class="card-header">
+              <h2 class="card-title" style="font-size: 1rem;">
+                <div class="card-icon">💻</div>
+                SSH Terminal
+              </h2>
+              <button class="btn" onclick="openTerminalTab()" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                🔗 Open Tab
+              </button>
+            </div>
+
+            <div class="terminal-container" style="height: calc(100% - 60px);">
+              <div class="terminal-header">
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <span style="margin-left: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+                  SSH Terminal (Port 7681)
+                </span>
+              </div>
+              <iframe id="terminalFrame" class="terminal-iframe" title="SSH Terminal"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SSH Commands Section -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h2 class="card-title">
+            <div class="card-icon">🔧</div>
+            SSH Commands
+          </h2>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+          <!-- Pi Connection -->
+          <div>
+            <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1rem;">Pi Connection</h3>
+            <div class="command-section">
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem;">
+                <strong>Terminal SSH:</strong>
+              </div>
+              <div class="code-block" style="margin-bottom: 0.8rem; font-size: 0.8rem;">
+                ssh pi@&lt;raspberry_pi_ip&gt;
+              </div>
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem;">
+                <strong>Web Terminal:</strong>
+              </div>
+              <div class="code-block" style="font-size: 0.8rem;">
+                http://&lt;raspberry_pi_ip&gt;:7681
+              </div>
+            </div>
+          </div>
+
+          <!-- Camera Setup -->
+          <div>
+            <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1rem;">Camera Setup</h3>
+            <div class="command-section">
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem;">
+                <strong>Start Camera 1:</strong>
+              </div>
+              <div class="code-block" style="margin-bottom: 0.8rem; font-size: 0.8rem;">
+                mjpg_streamer -i "input_uvc.so -d /dev/video0" -o "output_http.so -p 8080"
+              </div>
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem;">
+                <strong>Check Devices:</strong>
+              </div>
+              <div class="code-block" style="font-size: 0.8rem;">
+                ls /dev/video*
+              </div>
+            </div>
+          </div>
+
+          <!-- Health Monitoring -->
+          <div>
+            <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1rem;">Health Monitoring</h3>
+            <div class="command-section">
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem;">
+                <strong>Start Health Server:</strong>
+              </div>
+              <div class="code-block" style="margin-bottom: 0.8rem; font-size: 0.8rem;">
+                cd /home/pi/monitoring && python3 simple_health_server.py
+              </div>
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem;">
+                <strong>Install Dependencies:</strong>
+              </div>
+              <div class="code-block" style="font-size: 0.8rem;">
+                sudo apt install python3-fastapi python3-uvicorn
+              </div>
+            </div>
+          </div>
+
+          <!-- Cry Detection -->
+          <div>
+            <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1rem;">Cry Detection</h3>
+            <div class="command-section">
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem;">
+                <strong>Start Cry Detection:</strong>
+              </div>
+              <div class="code-block" style="margin-bottom: 0.8rem; font-size: 0.8rem;">
+                cd /home/pi/monitoring && python3 cry_detector.py
+              </div>
+              <div style="margin-bottom: 0.3rem; font-size: 0.9rem;">
+                <strong>Install Audio:</strong>
+              </div>
+              <div class="code-block" style="font-size: 0.8rem;">
+                sudo apt install python3-pyaudio portaudio19-dev
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // Global variables
+      let isHealthMonitoring = false;
+      let healthInterval;
+      let isCryDetectionActive = false;
+      let cryDetectionInterval;
+
+      // Pi configuration
+      const PI_IP = "192.168.1.100"; // Change this to your Pi's IP
+      const HEALTH_PORT = 9000;
+      const CRY_PORT = 8888;
+      const TERMINAL_PORT = 7681;
+
+      // Initialize on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("🚀 Pi Monitoring Dashboard loaded");
+        console.log(`📍 Health API: http://${PI_IP}:${HEALTH_PORT}/health`);
+        console.log(`🎤 Cry API: http://${PI_IP}:${CRY_PORT}/status`);
+
+        // Initialize terminal iframe
+        const terminalFrame = document.getElementById("terminalFrame");
+        terminalFrame.src = `http://${PI_IP}:${TERMINAL_PORT}`;
+
+        // Update debug info
+        document.getElementById("debugUrl").textContent = `http://${PI_IP}:${HEALTH_PORT}/health`;
+      });
+
+      // === CAMERA FUNCTIONS ===
+
+      function startCam(camNum) {
+        const port = document.getElementById(`port${camNum}`).value;
+        const img = document.getElementById(`cam${camNum}`);
+        const overlay = document.getElementById(`cam${camNum}Overlay`);
+        const portDisplay = document.getElementById(`port${camNum}Display`);
+
+        // Update the stream URL
+        const streamUrl = `http://${PI_IP}:${port}/?action=stream`;
+        img.src = streamUrl;
+
+        // Show loading state
+        overlay.style.display = "flex";
+        img.style.display = "none";
+
+        // Update port display
+        portDisplay.textContent = port;
+
+        img.onload = function () {
+          overlay.style.display = "none";
+          img.style.display = "block";
+          console.log(`✅ Camera ${camNum} started successfully on port ${port}`);
+        };
+
+        img.onerror = function () {
+          console.error(`❌ Failed to load Camera ${camNum} on port ${port}`);
+          // Keep overlay visible to show error state
+          overlay.innerHTML = `
+            <div>❌</div>
+            <div>Camera ${camNum} Error</div>
+            <div style="font-size: 0.75rem; margin-top: 0.5rem">
+              Port: ${port} (Check connection)
+            </div>
+          `;
+        };
+      }
+
+      function stopCam(camNum) {
+        const img = document.getElementById(`cam${camNum}`);
+        const overlay = document.getElementById(`cam${camNum}Overlay`);
+        const port = document.getElementById(`port${camNum}`).value;
+
+        img.src = "";
+        img.style.display = "none";
+        overlay.style.display = "flex";
+
+        // Reset overlay content
+        overlay.innerHTML = `
+          <div>📷</div>
+          <div>Camera ${camNum} ${camNum === 1 ? "(Infant)" : "(LCD)"}</div>
+          <div style="font-size: 0.75rem; margin-top: 0.5rem">
+            Port: <span id="port${camNum}Display">${port}</span>
+          </div>
+        `;
+
+        console.log(`⏹️ Camera ${camNum} stopped`);
+      }
+
+      function openCam(camNum) {
+        const port = document.getElementById(`port${camNum}`).value;
+        const url = `http://${PI_IP}:${port}`;
+        window.open(url, `_camera${camNum}`);
+        console.log(`🔗 Opened Camera ${camNum} in new tab: ${url}`);
+      }
+
+      function startAllCams() {
+        console.log("🎬 Starting all cameras...");
+        startCam(1);
+        startCam(2);
+      }
+
+      function stopAllCams() {
+        console.log("⏹️ Stopping all cameras...");
+        stopCam(1);
+        stopCam(2);
+      }
+
+      // === HEALTH MONITORING FUNCTIONS ===
+
+      function toggleHealthMonitoring() {
+        if (isHealthMonitoring) {
+          stopHealthMonitoring();
+        } else {
+          startHealthMonitoring();
+        }
+      }
+
+      function startHealthMonitoring() {
+        const interval = parseInt(document.getElementById("pollInterval").value) * 1000;
+        const btn = document.getElementById("healthBtn");
+
+        isHealthMonitoring = true;
+        btn.textContent = "⏹️ Stop";
+        btn.className = "btn btn-danger";
+
+        console.log(`📊 Starting health monitoring (${interval}ms interval)`);
+
+        // First fetch
+        fetchHealthData();
+
+        // Set up interval
+        healthInterval = setInterval(fetchHealthData, interval);
+      }
+
+      function stopHealthMonitoring() {
+        const btn = document.getElementById("healthBtn");
+
+        isHealthMonitoring = false;
+        btn.textContent = "▶️ Start";
+        btn.className = "btn btn-success";
+
+        if (healthInterval) {
+          clearInterval(healthInterval);
+          healthInterval = null;
+        }
+
+        console.log("⏹️ Health monitoring stopped");
+      }
+
+      async function fetchHealthData() {
+        const healthUrl = `http://${PI_IP}:${HEALTH_PORT}/health`;
+
+        try {
+          console.log(`📡 Fetching health data from: ${healthUrl}`);
+
+          const response = await fetch(healthUrl, {
+            method: "GET",
+            headers: {
+              "Accept": "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          console.log("📊 Health data received:", data);
+
+          updateHealthDisplay(data);
+          updateDebugInfo("Success", null, data);
+
+        } catch (error) {
+          console.error("❌ Health fetch error:", error);
+          updateDebugInfo("Error", error.message, null);
+          updateHealthDisplay(null, error);
+        }
+      }
+
+      function updateHealthDisplay(data, error = null) {
+        if (error) {
+          // Show error state
+          document.getElementById("cpuValue").textContent = "Error";
+          document.getElementById("ramValue").textContent = "Error";
+          document.getElementById("tempValue").textContent = "Error";
+          document.getElementById("powerValue").textContent = "Error";
+
+          // Reset progress bars
+          document.getElementById("cpuProgress").style.width = "0%";
+          document.getElementById("ramProgress").style.width = "0%";
+          return;
+        }
+
+        if (!data) return;
+
+        // Update values
+        document.getElementById("cpuValue").textContent = `${data.cpu}%`;
+        document.getElementById("ramValue").textContent = `${data.ram}%`;
+        document.getElementById("tempValue").textContent = `${data.temp}°C`;
+        document.getElementById("powerValue").textContent = data.power || "OK";
+
+        // Update progress bars
+        document.getElementById("cpuProgress").style.width = `${data.cpu}%`;
+        document.getElementById("ramProgress").style.width = `${data.ram}%`;
+
+        // Color coding for temperature
+        const tempElement = document.getElementById("tempValue");
+        if (data.temp > 70) {
+          tempElement.style.color = "var(--danger)";
+        } else if (data.temp > 60) {
+          tempElement.style.color = "var(--warning)";
+        } else {
+          tempElement.style.color = "var(--success)";
+        }
+      }
+
+      function updateDebugInfo(status, error, response) {
+        document.getElementById("debugError").textContent = error || "None";
+        if (response) {
+          document.getElementById("debugResponse").textContent = JSON.stringify(response, null, 2);
+        }
+      }
+
+      function toggleDebugPanel() {
+        const panel = document.getElementById("debugPanel");
+        const toggle = document.getElementById("debugToggle");
+
+        if (panel.style.display === "none") {
+          panel.style.display = "block";
+          toggle.textContent = "Hide";
+        } else {
+          panel.style.display = "none";
+          toggle.textContent = "Show";
+        }
+      }
+
+      // === CRY DETECTION FUNCTIONS ===
+
+      function startCryDetection() {
+        isCryDetectionActive = true;
+        console.log("🎧 Starting cry detection monitoring...");
+
+        // Start polling cry detection status
+        cryDetectionInterval = setInterval(checkCryStatus, 1000);
+        checkCryStatus(); // Initial check
+      }
+
+      function stopCryDetection() {
+        isCryDetectionActive = false;
+        console.log("⏹️ Stopping cry detection monitoring...");
+
+        if (cryDetectionInterval) {
+          clearInterval(cryDetectionInterval);
+          cryDetectionInterval = null;
+        }
+
+        // Reset status
+        const statusElement = document.getElementById("cryStatus");
+        statusElement.textContent = "Stopped";
+        statusElement.className = "cry-status normal";
+      }
+
+      async function checkCryStatus() {
+        const cryUrl = `http://${PI_IP}:${CRY_PORT}/status`;
+
+        try {
+          const response = await fetch(cryUrl);
+          const data = await response.json();
+
+          const statusElement = document.getElementById("cryStatus");
+
+          if (data.crying) {
+            statusElement.textContent = "CRY DETECTED!";
+            statusElement.className = "cry-status crying";
+            console.log("🚨 CRY DETECTED!");
+          } else {
+            statusElement.textContent = "Normal";
+            statusElement.className = "cry-status normal";
+          }
+
+        } catch (error) {
+          console.error("❌ Cry detection error:", error);
+          const statusElement = document.getElementById("cryStatus");
+          statusElement.textContent = "Error";
+          statusElement.className = "cry-status error";
+        }
+      }
+
+      // === AUDIO FUNCTIONS ===
+
+      function playAudioStream() {
+        const audioPlayer = document.getElementById("audioPlayer");
+        const audioUrl = `http://${PI_IP}:8080/?action=stream`; // Adjust URL as needed
+
+        audioPlayer.src = audioUrl;
+        audioPlayer.play().catch(error => {
+          console.error("❌ Audio play error:", error);
+          alert("Could not play audio stream. Check if audio streaming is available on the Pi.");
+        });
+
+        console.log("🔊 Audio stream started");
+      }
+
+      function stopAudioStream() {
+        const audioPlayer = document.getElementById("audioPlayer");
+        audioPlayer.pause();
+        audioPlayer.src = "";
+        console.log("🔇 Audio stream stopped");
+      }
+
+      // === TERMINAL FUNCTIONS ===
+
+      function openTerminalTab() {
+        const terminalUrl = `http://${PI_IP}:${TERMINAL_PORT}`;
+        window.open(terminalUrl, "_terminal");
+        console.log(`🔗 Opened terminal in new tab: ${terminalUrl}`);
+      }
+
+      // === UTILITY FUNCTIONS ===
+
+      function testHealthAPI() {
+        const healthUrl = `http://${PI_IP}:${HEALTH_PORT}/health`;
+        console.log("🧪 Testing health API:", healthUrl);
+
+        fetch(healthUrl)
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Test response data:", data);
+            document.getElementById(
+              "debugResponse"
+            ).textContent = `Success: CPU=${data.cpu}%, RAM=${data.ram}%`;
+            document.getElementById("debugError").textContent = "None";
+          })
+          .catch((error) => {
+            console.error("Test error:", error);
+            document.getElementById("debugError").textContent = error.message;
+            document.getElementById("debugResponse").textContent = "Failed";
+          });
+      }
+
+      function clearDebugLog() {
+        document.getElementById("debugError").textContent = "None";
+        document.getElementById("debugResponse").textContent = "None";
+        console.clear();
+      }
+    </script>
+  </body>
+</html>
+            <h2 class="card-title">
+              <div class="card-icon">💓</div>
+              System Health
+            </h2>
+            <div style="display: flex; align-items: center; gap: 0.5rem">
+              <input
+                id="pollInterval"
+                type="number"
+                class="input"
+                value="2"
+                min="1"
+                max="60"
+                style="width: 60px"
+              />
+              <span style="font-size: 0.875rem; color: var(--text-muted)"
+                >sec</span
+              >
+              <button
+                class="btn btn-success"
+                onclick="toggleHealthMonitoring()"
+                id="healthBtn"
+              >
+                ▶️ Start
+              </button>
+            </div>
+          </div>
+
+          <div class="health-grid">
+            <div class="metric-card">
+              <div
+                class="metric-value"
+                id="cpuValue"
+                style="color: var(--primary)"
+              >
+                --
+              </div>
+              <div class="metric-label">CPU Usage</div>
+              <div class="progress-bar">
+                <div
+                  class="progress-fill"
+                  id="cpuProgress"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div
+                class="metric-value"
+                id="ramValue"
+                style="color: var(--success)"
+              >
+                --
+              </div>
+              <div class="metric-label">RAM Usage</div>
+              <div class="progress-bar">
+                <div
+                  class="progress-fill"
+                  id="ramProgress"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div
+                class="metric-value"
+                id="tempValue"
+                style="color: var(--warning)"
+              >
+                --
+              </div>
+              <div class="metric-label">Temperature</div>
+            </div>
+
+            <div class="metric-card">
+              <div
+                class="metric-value"
+                id="powerValue"
+                style="color: var(--success)"
+              >
+                --
+              </div>
+              <div class="metric-label">Power Status</div>
+            </div>
+          </div>
+
+          <!-- Debug Panel -->
+          <div
+            style="
+              margin-top: 1rem;
+              padding: 1rem;
+              background: var(--surface-light);
+              border-radius: 8px;
+              border: 1px solid var(--border);
+            "
+          >
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.5rem;
+              "
+            >
+              <h3
+                style="font-size: 0.875rem; color: var(--text-muted); margin: 0"
+              >
+                Debug Info
+              </h3>
+              <button
+                class="btn"
+                style="padding: 0.25rem 0.5rem; font-size: 0.75rem"
+                onclick="toggleDebugPanel()"
+              >
+                <span id="debugToggle">Show</span>
+              </button>
+            </div>
+            <div id="debugPanel" style="display: none">
+              <div
+                style="
+                  font-size: 0.75rem;
+                  color: var(--text-muted);
+                  margin-bottom: 0.5rem;
+                "
+              >
+                Health URL: <span id="debugUrl">--</span>
+              </div>
+              <div
+                style="
+                  font-size: 0.75rem;
+                  color: var(--text-muted);
+                  margin-bottom: 0.5rem;
+                "
+              >
+                Last Error: <span id="debugError">None</span>
+              </div>
+              <div
+                style="
+                  font-size: 0.75rem;
+                  color: var(--text-muted);
+                  margin-bottom: 0.5rem;
+                "
+              >
+                Last Response: <span id="debugResponse">None</span>
+              </div>
+              <div style="display: flex; gap: 0.5rem">
+                <button
+                  class="btn btn-secondary"
+                  style="padding: 0.25rem 0.5rem; font-size: 0.75rem"
+                  onclick="testHealthAPI()"
+                >
+                  🧪 Test API
+                </button>
+                <button
+                  class="btn btn-secondary"
+                  style="padding: 0.25rem 0.5rem; font-size: 0.75rem"
+                  onclick="clearDebugLog()"
+                >
+                  🗑️ Clear Log
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Terminal Section -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <div class="card-icon">💻</div>
+              SSH Terminal
+            </h2>
+            <button class="btn" onclick="openTerminalTab()">
+              🔗 Open in New Tab
+            </button>
+          </div>
+
+          <div class="terminal-container">
+            <div class="terminal-header">
+              <div class="terminal-dot"></div>
+              <div class="terminal-dot"></div>
+              <div class="terminal-dot"></div>
+              <span
+                style="
+                  margin-left: 1rem;
+                  font-size: 0.875rem;
+                  color: var(--text-muted);
+                "
+                >SSH Terminal (Port 7681)</span
+              >
+            </div>
+            <iframe
+              id="terminalFrame"
+              class="terminal-iframe"
+              title="SSH Terminal"
+            ></iframe>
+          </div>
+        </div>
+
+        <!-- Audio & Cry Detection -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <div class="card-icon">🎤</div>
+              Audio Monitoring
+            </h2>
+          </div>
+
+          <div class="audio-controls">
+            <div class="cry-detector">
+              <div class="cry-status normal" id="cryStatus">Normal</div>
+              <div
+                style="
+                  font-size: 0.875rem;
+                  color: var(--text-muted);
+                  margin-bottom: 1rem;
+                "
+              >
+                Cry Detection Status
+              </div>
+              <div style="display: flex; gap: 0.5rem; justify-content: center">
+                <button class="btn btn-success" onclick="startCryDetection()">
+                  🎧 Start Monitoring
+                </button>
+                <button class="btn btn-secondary" onclick="stopCryDetection()">
+                  ⏹️ Stop
+                </button>
+              </div>
+            </div>
+
+            <audio
+              id="audioPlayer"
+              class="audio-player"
+              controls
+              preload="none"
+            >
+              Your browser does not support the audio element.
+            </audio>
+
+            <div style="display: flex; gap: 0.5rem; justify-content: center">
+              <button class="btn" onclick="playAudioStream()">
+                ▶️ Play Stream
+              </button>
+              <button class="btn btn-secondary" onclick="stopAudioStream()">
+                ⏹️ Stop Stream
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      <div class="card ssh-section">
+        <div class="card-header">
+          <h2 class="card-title">
+            <div class="card-icon">🔧</div>
+            SSH Commands & Setup
+          </h2>
+        </div>
+
+        <div class="command-list">
+          <div class="command-item">
+            <div
+              style="
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                color: var(--primary);
+              "
+            >
+              Basic SSH Connection:
+            </div>
+            <div class="command-text" id="sshBasic">ssh pi@192.168.8.137</div>
+            <button class="btn copy-btn" onclick="copyCommand('sshBasic')">
+              📋 Copy
+            </button>
+          </div>
+
+          <div class="command-item">
+            <div
+              style="
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                color: var(--primary);
+              "
+            >
+              SSH with specific port:
+            </div>
+            <div class="command-text" id="sshPort">
+              ssh -p 22 pi@192.168.8.137
+            </div>
+            <button class="btn copy-btn" onclick="copyCommand('sshPort')">
+              📋 Copy
+            </button>
+          </div>
+
+          <div class="command-item">
+            <div
+              style="
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                color: var(--primary);
+              "
+            >
+              Install ttyd for web terminal:
+            </div>
+            <div class="command-text" id="ttydInstall">
+              sudo apt update && sudo apt install ttyd -y
+            </div>
+            <button class="btn copy-btn" onclick="copyCommand('ttydInstall')">
+              📋 Copy
+            </button>
+          </div>
+
+          <div class="command-item">
+            <div
+              style="
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                color: var(--primary);
+              "
+            >
+              Start ttyd service:
+            </div>
+            <div class="command-text" id="ttydStart">
+              sudo ttyd -p 7681 -W bash
+            </div>
+            <button class="btn copy-btn" onclick="copyCommand('ttydStart')">
+              📋 Copy
+            </button>
+          </div>
+
+          <div class="command-item">
+            <div
+              style="
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                color: var(--primary);
+              "
+            >
+              Check Pi services:
+            </div>
+            <div class="command-text" id="checkServices">
+              sudo systemctl status mjpg_streamer && sudo netstat -tulpn | grep
+              :808
+            </div>
+            <button class="btn copy-btn" onclick="copyCommand('checkServices')">
+              📋 Copy
+            </button>
+          </div>
+
+          <div class="command-item">
+            <div
+              style="
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                color: var(--primary);
+              "
+            >
+              PowerShell SSH (Windows):
+            </div>
+            <div class="command-text" id="powershellSsh">
+              ssh pi@192.168.8.137
+            </div>
+            <button class="btn copy-btn" onclick="copyCommand('powershellSsh')">
+              📋 Copy
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // Global variables
+      let isHealthMonitoring = false;
+      let healthInterval;
+      let isCryDetectionActive = false;
+      let cryDetectionInterval;
+
+      // Pi configuration
+      const PI_IP = "192.168.1.100"; // Change this to your Pi's IP
+      const HEALTH_PORT = 9000;
+      const CRY_PORT = 8888;
+      const TERMINAL_PORT = 7681;
+
+      // Initialize on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("🚀 Pi Monitoring Dashboard loaded");
+        console.log(`📍 Health API: http://${PI_IP}:${HEALTH_PORT}/health`);
+        console.log(`🎤 Cry API: http://${PI_IP}:${CRY_PORT}/status`);
+
+        // Initialize terminal iframe
+        const terminalFrame = document.getElementById("terminalFrame");
+        terminalFrame.src = `http://${PI_IP}:${TERMINAL_PORT}`;
+
+        // Update debug info
+        document.getElementById("debugUrl").textContent = `http://${PI_IP}:${HEALTH_PORT}/health`;
+      });
+
+      // === CAMERA FUNCTIONS ===
+
+      function startCam(camNum) {
+        const port = document.getElementById(`port${camNum}`).value;
+        const img = document.getElementById(`cam${camNum}`);
+        const overlay = document.getElementById(`cam${camNum}Overlay`);
+        const portDisplay = document.getElementById(`port${camNum}Display`);
+
+        // Update the stream URL
+        const streamUrl = `http://${PI_IP}:${port}/?action=stream`;
+        img.src = streamUrl;
+
+        // Show loading state
+        overlay.style.display = "flex";
+        img.style.display = "none";
+
+        // Update port display
+        portDisplay.textContent = port;
+
+        img.onload = function () {
+          overlay.style.display = "none";
+          img.style.display = "block";
+          console.log(`✅ Camera ${camNum} started successfully on port ${port}`);
+        };
+
+        img.onerror = function () {
+          console.error(`❌ Failed to load Camera ${camNum} on port ${port}`);
+          // Keep overlay visible to show error state
+          overlay.innerHTML = `
+            <div>❌</div>
+            <div>Camera ${camNum} Error</div>
+            <div style="font-size: 0.75rem; margin-top: 0.5rem">
+              Port: ${port} (Check connection)
+            </div>
+          `;
+        };
+      }
+
+      function stopCam(camNum) {
+        const img = document.getElementById(`cam${camNum}`);
+        const overlay = document.getElementById(`cam${camNum}Overlay`);
+        const port = document.getElementById(`port${camNum}`).value;
+
+        img.src = "";
+        img.style.display = "none";
+        overlay.style.display = "flex";
+
+        // Reset overlay content
+        overlay.innerHTML = `
+          <div>📷</div>
+          <div>Camera ${camNum} ${camNum === 1 ? "(Infant)" : "(LCD)"}</div>
+          <div style="font-size: 0.75rem; margin-top: 0.5rem">
+            Port: <span id="port${camNum}Display">${port}</span>
+          </div>
+        `;
+
+        console.log(`⏹️ Camera ${camNum} stopped`);
+      }
+
+      function openCam(camNum) {
+        const port = document.getElementById(`port${camNum}`).value;
+        const url = `http://${PI_IP}:${port}`;
+        window.open(url, `_camera${camNum}`);
+        console.log(`🔗 Opened Camera ${camNum} in new tab: ${url}`);
+      }
+
+      function startAllCams() {
+        console.log("🎬 Starting all cameras...");
+        startCam(1);
+        startCam(2);
+      }
+
+      function stopAllCams() {
+        console.log("⏹️ Stopping all cameras...");
+        stopCam(1);
+        stopCam(2);
+      }
+
+      // === HEALTH MONITORING FUNCTIONS ===
+
+      function toggleHealthMonitoring() {
+        if (isHealthMonitoring) {
+          stopHealthMonitoring();
+        } else {
+          startHealthMonitoring();
+        }
+      }
+
+      function startHealthMonitoring() {
+        const interval = parseInt(document.getElementById("pollInterval").value) * 1000;
+        const btn = document.getElementById("healthBtn");
+
+        isHealthMonitoring = true;
+        btn.textContent = "⏹️ Stop";
+        btn.className = "btn btn-danger";
+
+        console.log(`📊 Starting health monitoring (${interval}ms interval)`);
+
+        // First fetch
+        fetchHealthData();
+
+        // Set up interval
+        healthInterval = setInterval(fetchHealthData, interval);
+      }
+
+      function stopHealthMonitoring() {
+        const btn = document.getElementById("healthBtn");
+
+        isHealthMonitoring = false;
+        btn.textContent = "▶️ Start";
+        btn.className = "btn btn-success";
+
+        if (healthInterval) {
+          clearInterval(healthInterval);
+          healthInterval = null;
+        }
+
+        console.log("⏹️ Health monitoring stopped");
+      }
+
+      async function fetchHealthData() {
+        const healthUrl = `http://${PI_IP}:${HEALTH_PORT}/health`;
+
+        try {
+          console.log(`📡 Fetching health data from: ${healthUrl}`);
+
+          const response = await fetch(healthUrl, {
+            method: "GET",
+            headers: {
+              "Accept": "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          console.log("📊 Health data received:", data);
+
+          updateHealthDisplay(data);
+          updateDebugInfo("Success", null, data);
+
+        } catch (error) {
+          console.error("❌ Health fetch error:", error);
+          updateDebugInfo("Error", error.message, null);
+          updateHealthDisplay(null, error);
+        }
+      }
+
+      function updateHealthDisplay(data, error = null) {
+        if (error) {
+          // Show error state
+          document.getElementById("cpuValue").textContent = "Error";
+          document.getElementById("ramValue").textContent = "Error";
+          document.getElementById("tempValue").textContent = "Error";
+          document.getElementById("powerValue").textContent = "Error";
+
+          // Reset progress bars
+          document.getElementById("cpuProgress").style.width = "0%";
+          document.getElementById("ramProgress").style.width = "0%";
+          return;
+        }
+
+        if (!data) return;
+
+        // Update values
+        document.getElementById("cpuValue").textContent = `${data.cpu}%`;
+        document.getElementById("ramValue").textContent = `${data.ram}%`;
+        document.getElementById("tempValue").textContent = `${data.temp}°C`;
+        document.getElementById("powerValue").textContent = data.power || "OK";
+
+        // Update progress bars
+        document.getElementById("cpuProgress").style.width = `${data.cpu}%`;
+        document.getElementById("ramProgress").style.width = `${data.ram}%`;
+
+        // Color coding for temperature
+        const tempElement = document.getElementById("tempValue");
+        if (data.temp > 70) {
+          tempElement.style.color = "var(--danger)";
+        } else if (data.temp > 60) {
+          tempElement.style.color = "var(--warning)";
+        } else {
+          tempElement.style.color = "var(--success)";
+        }
+      }
+
+      function updateDebugInfo(status, error, response) {
+        document.getElementById("debugError").textContent = error || "None";
+        if (response) {
+          document.getElementById("debugResponse").textContent = JSON.stringify(response, null, 2);
+        }
+      }
+
+      function toggleDebugPanel() {
+        const panel = document.getElementById("debugPanel");
+        const toggle = document.getElementById("debugToggle");
+
+        if (panel.style.display === "none") {
+          panel.style.display = "block";
+          toggle.textContent = "Hide";
+        } else {
+          panel.style.display = "none";
+          toggle.textContent = "Show";
+        }
+      }
+
+      // === CRY DETECTION FUNCTIONS ===
+
+      function startCryDetection() {
+        isCryDetectionActive = true;
+        console.log("🎧 Starting cry detection monitoring...");
+
+        // Start polling cry detection status
+        cryDetectionInterval = setInterval(checkCryStatus, 1000);
+        checkCryStatus(); // Initial check
+      }
+
+      function stopCryDetection() {
+        isCryDetectionActive = false;
+        console.log("⏹️ Stopping cry detection monitoring...");
+
+        if (cryDetectionInterval) {
+          clearInterval(cryDetectionInterval);
+          cryDetectionInterval = null;
+        }
+
+        // Reset status
+        const statusElement = document.getElementById("cryStatus");
+        statusElement.textContent = "Stopped";
+        statusElement.className = "cry-status normal";
+      }
+
+      async function checkCryStatus() {
+        const cryUrl = `http://${PI_IP}:${CRY_PORT}/status`;
+
+        try {
+          const response = await fetch(cryUrl);
+          const data = await response.json();
+
+          const statusElement = document.getElementById("cryStatus");
+
+          if (data.crying) {
+            statusElement.textContent = "CRY DETECTED!";
+            statusElement.className = "cry-status crying";
+            console.log("🚨 CRY DETECTED!");
+          } else {
+            statusElement.textContent = "Normal";
+            statusElement.className = "cry-status normal";
+          }
+
+        } catch (error) {
+          console.error("❌ Cry detection error:", error);
+          const statusElement = document.getElementById("cryStatus");
+          statusElement.textContent = "Error";
+          statusElement.className = "cry-status error";
+        }
+      }
+
+      // === AUDIO FUNCTIONS ===
+
+      function playAudioStream() {
+        const audioPlayer = document.getElementById("audioPlayer");
+        const audioUrl = `http://${PI_IP}:8080/?action=stream`; // Adjust URL as needed
+
+        audioPlayer.src = audioUrl;
+        audioPlayer.play().catch(error => {
+          console.error("❌ Audio play error:", error);
+          alert("Could not play audio stream. Check if audio streaming is available on the Pi.");
+        });
+
+        console.log("🔊 Audio stream started");
+      }
+
+      function stopAudioStream() {
+        const audioPlayer = document.getElementById("audioPlayer");
+        audioPlayer.pause();
+        audioPlayer.src = "";
+        console.log("🔇 Audio stream stopped");
+      }
+
+      // === TERMINAL FUNCTIONS ===
+
+      function openTerminalTab() {
+        const terminalUrl = `http://${PI_IP}:${TERMINAL_PORT}`;
+        window.open(terminalUrl, "_terminal");
+        console.log(`🔗 Opened terminal in new tab: ${terminalUrl}`);
+      }
+
+      // === UTILITY FUNCTIONS ===
+
+      function testHealthAPI() {
+        const healthUrl = `http://${PI_IP}:${HEALTH_PORT}/health`;
+        console.log("🧪 Testing health API:", healthUrl);
+
+        fetch(healthUrl)
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Test response data:", data);
+            document.getElementById(
+              "debugResponse"
+            ).textContent = `Success: CPU=${data.cpu}%, RAM=${data.ram}%`;
+            document.getElementById("debugError").textContent = "None";
+          })
+          .catch((error) => {
+            console.error("Test error:", error);
+            document.getElementById("debugError").textContent = error.message;
+            document.getElementById("debugResponse").textContent = "Failed";
+          });
+      }
+
+      function clearDebugLog() {
+        document.getElementById("debugError").textContent = "None";
+        document.getElementById("debugResponse").textContent = "None";
+        console.clear();
+      }
+
+      // Host/Connection Management
+      function applyHost() {
+        const hostInput = document.getElementById("host").value.trim();
+        HOST = hostInput.startsWith("http") ? hostInput : `http://${hostInput}`;
+
+        // Update connection status
+        updateConnectionStatus();
+        updateSSHCommands();
+        updateDebugInfo();
+
+        // Reset streams
+        stopAllCams();
+        stopHealthMonitoring();
+        stopCryDetection();
+
+        // Load terminal
+        loadTerminal();
+
+        console.log("Host updated to:", HOST);
+      }
+
+      function updateConnectionStatus() {
+        const statusDot = document.getElementById("connectionStatus");
+        const statusText = document.getElementById("connectionText");
+
+        // Test connection by trying to fetch health endpoint
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        fetch(`${HOST}:9000/health`, {
+          method: "GET",
+          signal: controller.signal,
+        })
+          .then((response) => {
+            clearTimeout(timeoutId);
+            if (response.ok) {
+              statusDot.classList.add("connected");
+              statusText.textContent = "Connected";
+              return response.json();
+            } else {
+              throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+              );
+            }
+          })
+          .then((data) => {
+            console.log("Health API response:", data);
+          })
+          .catch((error) => {
+            clearTimeout(timeoutId);
+            statusDot.classList.remove("connected");
+            statusText.textContent = "Disconnected";
+            console.log("Connection test failed:", error.message);
+          });
+      }
+
+      function updateSSHCommands() {
+        const ip = HOST.replace(/^https?:\/\//, "");
+        document.getElementById("sshBasic").textContent = `ssh pi@${ip}`;
+        document.getElementById("sshPort").textContent = `ssh -p 22 pi@${ip}`;
+        document.getElementById("powershellSsh").textContent = `ssh pi@${ip}`;
+      }
+
+      // Camera Management
+      function getCameraUrl(camNumber) {
+        const portElement = document.getElementById(`port${camNumber}`);
+        const port = portElement.value || (camNumber === 1 ? "8080" : "8081");
+        return `${HOST}:${port}/?action=stream`;
+      }
+
+      function startCam(camNumber) {
+        const img = document.getElementById(`cam${camNumber}`);
+        const overlay = document.getElementById(`cam${camNumber}Overlay`);
+        const url = getCameraUrl(camNumber);
+
+        img.style.display = "block";
+        overlay.style.display = "none";
+        img.src = url;
+
+        // Update port display
+        const port = document.getElementById(`port${camNumber}`).value;
+        document.getElementById(`port${camNumber}Display`).textContent = port;
+
+        console.log(`Camera ${camNumber} started:`, url);
+      }
+
+      function stopCam(camNumber) {
+        const img = document.getElementById(`cam${camNumber}`);
+        const overlay = document.getElementById(`cam${camNumber}Overlay`);
+
+        img.style.display = "none";
+        overlay.style.display = "flex";
+        img.src = "";
+
+        console.log(`Camera ${camNumber} stopped`);
+      }
+
+      function startAllCams() {
+        startCam(1);
+        startCam(2);
+      }
+
+      function stopAllCams() {
+        stopCam(1);
+        stopCam(2);
+      }
+
+      function openCam(camNumber) {
+        const url = getCameraUrl(camNumber);
+        window.open(url, "_blank");
+      }
+
+      // Terminal Management
+      function loadTerminal() {
+        const iframe = document.getElementById("terminalFrame");
+        iframe.src = `${HOST}:7681/`;
+      }
+
+      function openTerminalTab() {
+        window.open(`${HOST}:7681/`, "_blank");
+      }
+
+      // Health Monitoring
+      function toggleHealthMonitoring() {
+        const btn = document.getElementById("healthBtn");
+
+        if (isHealthMonitoring) {
+          stopHealthMonitoring();
+        } else {
+          startHealthMonitoring();
+        }
+      }
+
+      function startHealthMonitoring() {
+        if (isHealthMonitoring) return;
+
+        const interval =
+          parseInt(document.getElementById("pollInterval").value) * 1000;
+        const btn = document.getElementById("healthBtn");
+
+        btn.textContent = "⏹️ Stop";
+        btn.className = "btn btn-error";
+        isHealthMonitoring = true;
+
+        // Initial fetch
+        fetchHealthData();
+
+        // Set up interval
+        healthMonitorInterval = setInterval(fetchHealthData, interval);
+
+        console.log("Health monitoring started");
+      }
+
+      function stopHealthMonitoring() {
+        if (!isHealthMonitoring) return;
+
+        const btn = document.getElementById("healthBtn");
+
+        btn.textContent = "▶️ Start";
+        btn.className = "btn btn-success";
+        isHealthMonitoring = false;
+
+        if (healthMonitorInterval) {
+          clearInterval(healthMonitorInterval);
+          healthMonitorInterval = null;
+        }
+
+        // Reset displays
+        resetHealthDisplay();
+
+        console.log("Health monitoring stopped");
+      }
+
+      function fetchHealthData() {
+        console.log(`Fetching health data from: ${HOST}:9000/health`);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        fetch(`${HOST}:9000/health`, {
+          method: "GET",
+          signal: controller.signal,
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => {
+            clearTimeout(timeoutId);
+            console.log(`Health API response status: ${response.status}`);
+
+            if (!response.ok) {
+              throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+              );
+            }
+
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Health data received:", data);
+            updateHealthDisplay(data);
+
+            // Update connection status on successful fetch
+            const statusDot = document.getElementById("connectionStatus");
+            const statusText = document.getElementById("connectionText");
+            statusDot.classList.add("connected");
+            statusText.textContent = "Connected";
+          })
+          .catch((error) => {
+            clearTimeout(timeoutId);
+            console.error("Health fetch error:", error);
+
+            // Show error in the UI
+            const statusDot = document.getElementById("connectionStatus");
+            const statusText = document.getElementById("connectionText");
+            statusDot.classList.remove("connected");
+            statusText.textContent = `Error: ${error.message}`;
+
+            // Reset health displays but show error info
+            document.getElementById("cpuValue").textContent = "Error";
+            document.getElementById("ramValue").textContent = "Error";
+            document.getElementById("tempValue").textContent = "Error";
+            document.getElementById("powerValue").textContent = "Error";
+            document.getElementById("cpuProgress").style.width = "0%";
+            document.getElementById("ramProgress").style.width = "0%";
+          });
+      }
+
+      function updateHealthDisplay(data) {
+        console.log("Updating health display with data:", data);
+
+        // Check if data has error
+        if (data.error) {
+          console.error("Health API returned error:", data.error);
+        }
+
+        // CPU
+        const cpu = parseFloat(data.cpu || 0);
+        const cpuText = cpu > 0 ? `${cpu.toFixed(1)}%` : "--";
+        document.getElementById("cpuValue").textContent = cpuText;
+        document.getElementById("cpuProgress").style.width = `${Math.min(
+          100,
+          cpu
+        )}%`;
+
+        // Update CPU color based on usage
+        const cpuElement = document.getElementById("cpuValue");
+        if (cpu > 80) {
+          cpuElement.style.color = "var(--error)";
+        } else if (cpu > 60) {
+          cpuElement.style.color = "var(--warning)";
+        } else {
+          cpuElement.style.color = "var(--primary)";
+        }
+
+        // RAM
+        const ram = parseFloat(data.ram || 0);
+        const ramText = ram > 0 ? `${ram.toFixed(1)}%` : "--";
+        document.getElementById("ramValue").textContent = ramText;
+        document.getElementById("ramProgress").style.width = `${Math.min(
+          100,
+          ram
+        )}%`;
+
+        // Update RAM color based on usage
+        const ramElement = document.getElementById("ramValue");
+        if (ram > 90) {
+          ramElement.style.color = "var(--error)";
+        } else if (ram > 75) {
+          ramElement.style.color = "var(--warning)";
+        } else {
+          ramElement.style.color = "var(--success)";
+        }
+
+        // Temperature
+        const temp = parseFloat(data.temp || 0);
+        const tempText = temp > 0 ? `${temp.toFixed(1)}°C` : "--°C";
+        document.getElementById("tempValue").textContent = tempText;
+
+        // Update temperature color based on value
+        const tempElement = document.getElementById("tempValue");
+        if (temp > 80) {
+          tempElement.style.color = "var(--error)";
+        } else if (temp > 70) {
+          tempElement.style.color = "var(--warning)";
+        } else {
+          tempElement.style.color = "var(--success)";
+        }
+
+        // Power Status
+        const powerElement = document.getElementById("powerValue");
+        if (data.throttled !== undefined && data.throttled !== null) {
+          const throttled =
+            typeof data.throttled === "string"
+              ? parseInt(data.throttled, 16)
+              : data.throttled;
+
+          if (throttled === 0) {
+            powerElement.textContent = "OK";
+            powerElement.style.color = "var(--success)";
+          } else {
+            powerElement.textContent = "Throttled";
+            powerElement.style.color = "var(--error)";
+          }
+        } else {
+          powerElement.textContent = "Unknown";
+          powerElement.style.color = "var(--text-muted)";
+        }
+
+        console.log("Health display updated successfully");
+      }
+
+      function resetHealthDisplay() {
+        document.getElementById("cpuValue").textContent = "--";
+        document.getElementById("ramValue").textContent = "--";
+        document.getElementById("tempValue").textContent = "--°C";
+        document.getElementById("powerValue").textContent = "--";
+        document.getElementById("cpuProgress").style.width = "0%";
+        document.getElementById("ramProgress").style.width = "0%";
+      }
+
+      // Audio & Cry Detection
+      function startCryDetection() {
+        if (isCryDetecting) return;
+
+        console.log("Starting cry detection...");
+
+        // Call the cry detection start endpoint
+        fetch(`${HOST}:8888/cry/start`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              const statusElement = document.getElementById("cryStatus");
+              statusElement.textContent = "Monitoring...";
+              statusElement.className = "cry-status normal";
+              isCryDetecting = true;
+
+              // Start polling for cry detection status
+              cryDetectionInterval = setInterval(checkCryStatus, 1000);
+
+              console.log("Cry detection started successfully");
+            } else {
+              console.error("Failed to start cry detection:", data.message);
+              alert("Failed to start cry detection: " + data.message);
+            }
+          })
+          .catch((error) => {
+            console.error("Error starting cry detection:", error);
+            alert(
+              "Error starting cry detection. Make sure the cry detector is running on your Pi."
+            );
+          });
+      }
+
+      function stopCryDetection() {
+        if (!isCryDetecting) return;
+
+        console.log("Stopping cry detection...");
+
+        // Call the cry detection stop endpoint
+        fetch(`${HOST}:8888/cry/stop`)
+          .then((response) => response.json())
+          .then((data) => {
+            const statusElement = document.getElementById("cryStatus");
+            statusElement.textContent = "Stopped";
+            statusElement.className = "cry-status normal";
+            isCryDetecting = false;
+
+            if (cryDetectionInterval) {
+              clearInterval(cryDetectionInterval);
+              cryDetectionInterval = null;
+            }
+
+            console.log("Cry detection stopped");
+          })
+          .catch((error) => {
+            console.error("Error stopping cry detection:", error);
+            // Stop anyway
+            const statusElement = document.getElementById("cryStatus");
+            statusElement.textContent = "Normal";
+            statusElement.className = "cry-status normal";
+            isCryDetecting = false;
+
+            if (cryDetectionInterval) {
+              clearInterval(cryDetectionInterval);
+              cryDetectionInterval = null;
+            }
+          });
+      }
+
+      function checkCryStatus() {
+        if (!isCryDetecting) return;
+
+        fetch(`${HOST}:8888/cry/status`)
+          .then((response) => response.json())
+          .then((data) => {
+            const statusElement = document.getElementById("cryStatus");
+
+            if (data.cry_detected) {
+              statusElement.textContent = "CRY DETECTED! 👶";
+              statusElement.className = "cry-status detected";
+            } else if (data.is_monitoring) {
+              const audioLevel = (data.audio_level * 100).toFixed(1);
+              statusElement.textContent = `Monitoring... (Audio: ${audioLevel}%)`;
+              statusElement.className = "cry-status normal";
+            } else {
+              statusElement.textContent = "Not Monitoring";
+              statusElement.className = "cry-status normal";
+            }
+
+            // Update debug info if available
+            if (
+              document.getElementById("debugPanel").style.display !== "none"
+            ) {
+              document.getElementById(
+                "debugResponse"
+              ).textContent = `Cry API: detections=${
+                data.total_detections
+              }, audio=${(data.audio_level * 100).toFixed(1)}%`;
+            }
+          })
+          .catch((error) => {
+            console.error("Error checking cry status:", error);
+            if (
+              document.getElementById("debugPanel").style.display !== "none"
+            ) {
+              document.getElementById("debugError").textContent =
+                "Cry API: " + error.message;
+            }
+          });
+      }
+
+      function playAudioStream() {
+        const audio = document.getElementById("audioPlayer");
+        audio.src = `${HOST}:8000/cry.mp3`;
+        audio.play().catch((error) => {
+          console.error("Audio play error:", error);
+        });
+      }
+
+      function stopAudioStream() {
+        const audio = document.getElementById("audioPlayer");
+        audio.pause();
+        audio.src = "";
+      }
+
+      // Utility Functions
+      function copyCommand(elementId) {
+        const element = document.getElementById(elementId);
+        const text = element.textContent;
+
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            // Visual feedback
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = "✅ Copied!";
+            btn.style.background = "var(--success)";
+
+            setTimeout(() => {
+              btn.textContent = originalText;
+              btn.style.background = "";
+            }, 2000);
+          })
+          .catch((error) => {
+            console.error("Copy failed:", error);
+            // Fallback for older browsers
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+          });
+      }
+
+      // Cleanup on page unload
+      window.addEventListener("beforeunload", () => {
+        stopHealthMonitoring();
+        stopCryDetection();
+      });
+
+      // Debug Functions
+      function updateDebugInfo() {
+        document.getElementById("debugUrl").textContent = `${HOST}:9000/health`;
+      }
+
+      function toggleDebugPanel() {
+        const panel = document.getElementById("debugPanel");
+        const toggle = document.getElementById("debugToggle");
+
+        if (panel.style.display === "none") {
+          panel.style.display = "block";
+          toggle.textContent = "Hide";
+        } else {
+          panel.style.display = "none";
+          toggle.textContent = "Show";
+        }
+      }
+
+      function testHealthAPI() {
+        console.log("Testing Health API...");
+        document.getElementById("debugError").textContent = "Testing...";
+        document.getElementById("debugResponse").textContent = "Waiting...";
+
+        fetch(`${HOST}:9000/health`)
+          .then((response) => {
+            console.log("Test response status:", response.status);
+            document.getElementById(
+              "debugResponse"
+            ).textContent = `HTTP ${response.status}`;
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Test response data:", data);
+            document.getElementById(
+              "debugResponse"
+            ).textContent = `Success: CPU=${data.cpu}%, RAM=${data.ram}%`;
+            document.getElementById("debugError").textContent = "None";
+          })
+          .catch((error) => {
+            console.error("Test error:", error);
+            document.getElementById("debugError").textContent = error.message;
+            document.getElementById("debugResponse").textContent = "Failed";
+          });
+      }
+
+      function clearDebugLog() {
+        document.getElementById("debugError").textContent = "None";
+        document.getElementById("debugResponse").textContent = "None";
+        console.clear();
+      }
+    </script>
+  </body>
+</html>

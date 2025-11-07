@@ -42,26 +42,27 @@ except ImportError:
     YOLO = None
 
 try:
-    import pytesseract
+    import easyocr
 except ImportError:
-    print("⚠️  pytesseract not installed. Install with: pip install pytesseract")
-    pytesseract = None
+    print("⚠️  easyocr not installed. Install with: pip install easyocr")
+    easyocr = None
 
 # Configuration
 # Camera options: video0/1 = USB2.0 PC CAMERA, video2/3 = V380 FHD Camera
 # Use video0 (main device for USB2.0 PC CAMERA, not metadata device video1)
 LCD_CAMERA_INDEX = 0  # USB2.0 PC CAMERA
 LCD_PORT = 9001
-MODEL_PATH = "/home/sahan/monitoring/models/incubator_yolov8n.pt"  # Using PyTorch model for better accuracy
+MODEL_PATH = "/home/sahan/monitoring/models/incubator_yolov8n_v4.pt"  # Using v4 model with air temperature
 CAPTURE_INTERVAL = 5  # Capture every 5 seconds
 CONFIDENCE_THRESHOLD = 0.25
 
-# Medical parameter ranges
+# Medical parameter ranges (Updated with air temperature)
 PARAMETER_RANGES = {
-    'heart_rate_value': {'min': 60, 'max': 220, 'unit': 'bpm', 'name': 'Heart Rate'},
+    'heart_rate_value': {'min': 101, 'max': 220, 'unit': 'bpm', 'name': 'Heart Rate'},
     'spo2_value': {'min': 70, 'max': 100, 'unit': '%', 'name': 'SpO2'},
     'skin_temp_value': {'min': 32.0, 'max': 39.0, 'unit': '°C', 'name': 'Skin Temperature'},
-    'humidity_value': {'min': 30, 'max': 95, 'unit': '%', 'name': 'Humidity'}
+    'humidity_value': {'min': 30, 'max': 95, 'unit': '%', 'name': 'Humidity'},
+    'air_temp_value': {'min': 20.0, 'max': 40.0, 'unit': '°C', 'name': 'Air Temperature'}  # NEW: Air temperature
 }
 
 class LCDReader:
@@ -115,21 +116,21 @@ class LCDReader:
             return False
     
     def _init_ocr(self):
-        """Initialize Tesseract OCR"""
+        """Initialize EasyOCR"""
         try:
-            if pytesseract is None:
-                print("❌ pytesseract not available", flush=True)
+            if easyocr is None:
+                print("❌ easyocr not available", flush=True)
                 return False
             
-            print(f"🔧 Checking Tesseract installation...", flush=True)
-            # Test if tesseract is available
+            print(f"🔧 Initializing EasyOCR...", flush=True)
             try:
-                version = pytesseract.get_tesseract_version()
-                print(f"✅ Tesseract OCR initialized successfully (version: {version})", flush=True)
-                self.ocr_reader = True  # Flag to indicate OCR is ready
+                # Initialize EasyOCR reader for English with GPU support if available
+                self.ocr_reader = easyocr.Reader(['en'], gpu=False)  # Set gpu=True if GPU available
+                print(f"✅ EasyOCR initialized successfully", flush=True)
                 return True
             except Exception as e:
-                print(f"❌ Tesseract command not found. Install with: sudo apt-get install tesseract-ocr", flush=True)
+                print(f"❌ Error initializing EasyOCR: {e}", flush=True)
+                print(f"💡 Install with: pip3 install easyocr", flush=True)
                 return False
             
         except Exception as e:
@@ -269,8 +270,8 @@ class LCDReader:
             if crop.size == 0:
                 continue
             
-            # Map class ID to name
-            class_names = ['heart_rate_value', 'spo2_value', 'skin_temp_value', 'humidity_value']
+            # Map class ID to name (Updated with air_temp_value)
+            class_names = ['air_temp_value', 'heart_rate_value', 'humidity_value', 'skin_temp_value', 'spo2_value']
             cls_name = class_names[cls_id] if cls_id < len(class_names) else f'class_{cls_id}'
             
             print(f"  └─ ONNX: {cls_name}: {float(conf * cls_conf):.3f} at [{x1}, {y1}, {x2}, {y2}]", flush=True)
@@ -342,8 +343,8 @@ class LCDReader:
         return cleaned.strip('.')
     
     def run_ocr(self, crop):
-        """Run Tesseract OCR on cropped image with preprocessing"""
-        if self.ocr_reader is None or pytesseract is None:
+        """Run EasyOCR on cropped image with preprocessing"""
+        if self.ocr_reader is None:
             return None, 0.0
         
         try:
@@ -352,25 +353,34 @@ class LCDReader:
             if processed is None:
                 return None, 0.0
             
-            # Run Tesseract OCR with custom config for digits
-            # --psm 7 = Treat image as a single text line
-            # --oem 3 = Default OCR Engine Mode (LSTM)
-            # -c tessedit_char_whitelist = Only recognize these characters
-            custom_config = r'--psm 7 --oem 3 -c tessedit_char_whitelist=0123456789.%'
+            # Run EasyOCR - returns list of ([bbox], text, confidence)
+            # allowlist parameter limits to digits and decimal point
+            results = self.ocr_reader.readtext(
+                processed,
+                allowlist='0123456789.',
+                paragraph=False,
+                detail=1  # Return bbox, text, and confidence
+            )
             
-            # Get OCR result with confidence
-            data = pytesseract.image_to_data(processed, config=custom_config, output_type=pytesseract.Output.DICT)
+            if not results:
+                return None, 0.0
             
             # Extract text with highest confidence
-            confidences = [int(conf) for conf in data['conf'] if int(conf) > -1]
-            texts = [text for i, text in enumerate(data['text']) if int(data['conf'][i]) > -1 and text.strip()]
+            # EasyOCR returns results as: (bbox, text, confidence)
+            texts = []
+            confidences = []
+            
+            for (bbox, text, conf) in results:
+                if text.strip():  # Only non-empty text
+                    texts.append(text.strip())
+                    confidences.append(conf)
             
             if not texts:
                 return None, 0.0
             
             # Combine all text and get average confidence
             text = ''.join(texts)
-            confidence = sum(confidences) / len(confidences) / 100.0 if confidences else 0.0
+            confidence = sum(confidences) / len(confidences) if confidences else 0.0
             
             # Clean the text to extract numeric values
             text = self.clean_numeric(text)

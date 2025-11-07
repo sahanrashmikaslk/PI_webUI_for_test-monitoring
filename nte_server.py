@@ -59,11 +59,40 @@ except Exception as e:
     print(f"⚠️ Could not load ThingsBoard config: {e}")
     print("ThingsBoard publishing will be disabled")
 
-# Hardcoded air temperature until LCD reader is trained
+# Default air temperature (fallback if LCD reader is unavailable)
 DEFAULT_AIR_TEMP = 28.0  # °C
+
+# LCD reading server configuration
+LCD_SERVER_HOST = "localhost"
+LCD_SERVER_PORT = 9001
 
 # Baby data storage (in production, use a database)
 BABY_DATA_FILE = os.path.join(os.path.dirname(__file__), 'baby_data.json')
+
+def fetch_air_temp_from_lcd() -> Optional[float]:
+    """
+    Fetch real-time air temperature from LCD reading server.
+    Returns None if unavailable, allowing fallback to DEFAULT_AIR_TEMP.
+    """
+    try:
+        import requests
+        response = requests.get(
+            f"http://{LCD_SERVER_HOST}:{LCD_SERVER_PORT}/readings",
+            timeout=2
+        )
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('status') == 'success':
+                readings = data.get('readings', {})
+                air_temp_data = readings.get('air_temp_value')
+                if air_temp_data and 'value' in air_temp_data:
+                    air_temp = float(air_temp_data['value'])
+                    print(f"✅ Fetched air_temp from LCD: {air_temp}°C")
+                    return air_temp
+    except Exception as e:
+        print(f"⚠️ Failed to fetch air_temp from LCD server: {e}")
+    
+    return None
 
 app = FastAPI(
     title="NTE Recommendation Engine",
@@ -459,8 +488,19 @@ async def get_recommendations(request: NTERequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calculating age: {e}")
     
-    # Use hardcoded air temp unless override provided
-    air_temp = request.air_temp if request.air_temp is not None else DEFAULT_AIR_TEMP
+    # Determine air_temp: use override from request, or fetch from LCD, or use default
+    if request.air_temp is not None:
+        air_temp = request.air_temp
+        print(f"📝 Using air_temp from request: {air_temp}°C")
+    else:
+        # Try to fetch from LCD reading server
+        fetched_temp = fetch_air_temp_from_lcd()
+        if fetched_temp is not None:
+            air_temp = fetched_temp
+            print(f"🌡️ Using air_temp from LCD: {air_temp}°C")
+        else:
+            air_temp = DEFAULT_AIR_TEMP
+            print(f"⚠️ Using default air_temp: {air_temp}°C")
     
     # Prepare readings
     readings = {
